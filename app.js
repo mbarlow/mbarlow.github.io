@@ -135,10 +135,7 @@ class IndustrialPortfolio {
     this.updateElement("public-repos", "42");
     this.updateElement("followers", "128");
     this.updateElement("following", "73");
-    this.updateElement(
-      "user-bio",
-      "Building industrial-strength software solutions",
-    );
+    this.updateElement("user-bio", "v0.1.1");
 
     // Load fallback languages
     const languages = {
