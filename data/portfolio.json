@@ -1,0 +1,288 @@
+{
+  "profile": {
+    "name": "Michael Barlow",
+    "bio": null,
+    "location": "Orlando",
+    "company": null,
+    "blog": "",
+    "public_repos": 15,
+    "followers": 17,
+    "following": 23,
+    "created_at": "2010-05-21T00:40:48Z",
+    "updated_at": "2025-07-20T18:27:44Z"
+  },
+  "repositories": {
+    "total": 11,
+    "featured": [
+      {
+        "name": "mbarlow.github.io",
+        "description": null,
+        "html_url": "https://github.com/mbarlow/mbarlow.github.io",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 18,
+        "created_at": "2025-07-03T22:55:17Z",
+        "updated_at": "2025-07-22T01:16:53Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-media-extractor",
+        "description": "easily grab media from a page ",
+        "html_url": "https://github.com/mbarlow/chrome-media-extractor",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 11,
+        "created_at": "2025-07-20T17:53:48Z",
+        "updated_at": "2025-07-20T17:56:19Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-recorder",
+        "description": "Record tab session direct to local disk. All local, no cloud, no data share",
+        "html_url": "https://github.com/mbarlow/chrome-recorder",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 24,
+        "created_at": "2025-07-20T05:50:41Z",
+        "updated_at": "2025-07-20T17:42:33Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-seotools",
+        "description": null,
+        "html_url": "https://github.com/mbarlow/chrome-seotools",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 11,
+        "created_at": "2025-07-13T18:39:51Z",
+        "updated_at": "2025-07-13T18:41:11Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-github-themes",
+        "description": null,
+        "html_url": "https://github.com/mbarlow/chrome-github-themes",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "CSS",
+        "size": 19539,
+        "created_at": "2025-07-11T23:08:33Z",
+        "updated_at": "2025-07-11T23:42:50Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-adblock",
+        "description": null,
+        "html_url": "https://github.com/mbarlow/chrome-adblock",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 106,
+        "created_at": "2025-07-11T01:00:01Z",
+        "updated_at": "2025-07-11T01:51:10Z",
+        "topics": []
+      }
+    ],
+    "all": [
+      {
+        "name": "mbarlow.github.io",
+        "description": null,
+        "html_url": "https://github.com/mbarlow/mbarlow.github.io",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 18,
+        "created_at": "2025-07-03T22:55:17Z",
+        "updated_at": "2025-07-22T01:16:53Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-media-extractor",
+        "description": "easily grab media from a page ",
+        "html_url": "https://github.com/mbarlow/chrome-media-extractor",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 11,
+        "created_at": "2025-07-20T17:53:48Z",
+        "updated_at": "2025-07-20T17:56:19Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-recorder",
+        "description": "Record tab session direct to local disk. All local, no cloud, no data share",
+        "html_url": "https://github.com/mbarlow/chrome-recorder",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 24,
+        "created_at": "2025-07-20T05:50:41Z",
+        "updated_at": "2025-07-20T17:42:33Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-seotools",
+        "description": null,
+        "html_url": "https://github.com/mbarlow/chrome-seotools",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 11,
+        "created_at": "2025-07-13T18:39:51Z",
+        "updated_at": "2025-07-13T18:41:11Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-github-themes",
+        "description": null,
+        "html_url": "https://github.com/mbarlow/chrome-github-themes",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "CSS",
+        "size": 19539,
+        "created_at": "2025-07-11T23:08:33Z",
+        "updated_at": "2025-07-11T23:42:50Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-adblock",
+        "description": null,
+        "html_url": "https://github.com/mbarlow/chrome-adblock",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 106,
+        "created_at": "2025-07-11T01:00:01Z",
+        "updated_at": "2025-07-11T01:51:10Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-clip",
+        "description": "clipboard tools",
+        "html_url": "https://github.com/mbarlow/chrome-clip",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 72,
+        "created_at": "2025-07-10T23:50:47Z",
+        "updated_at": "2025-07-11T00:43:36Z",
+        "topics": []
+      },
+      {
+        "name": "mbarlow",
+        "description": null,
+        "html_url": "https://github.com/mbarlow/mbarlow",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "HTML",
+        "size": 1,
+        "created_at": "2025-06-01T07:15:16Z",
+        "updated_at": "2025-07-03T22:50:25Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-pretty-json",
+        "description": "pretty print browser json responses w/ support for themes",
+        "html_url": "https://github.com/mbarlow/chrome-pretty-json",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 12,
+        "created_at": "2025-07-03T13:03:19Z",
+        "updated_at": "2025-07-03T13:25:40Z",
+        "topics": []
+      },
+      {
+        "name": "chrome-snapshot",
+        "description": "chrome extension for taking quick snapshots w/ optional annotation",
+        "html_url": "https://github.com/mbarlow/chrome-snapshot",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 29,
+        "created_at": "2025-07-03T02:20:05Z",
+        "updated_at": "2025-07-03T03:12:19Z",
+        "topics": []
+      },
+      {
+        "name": "agent",
+        "description": "agent bootstrap",
+        "html_url": "https://github.com/mbarlow/agent",
+        "stargazers_count": 0,
+        "forks_count": 0,
+        "language": null,
+        "size": 50,
+        "created_at": "2025-06-19T12:23:14Z",
+        "updated_at": "2025-06-19T12:58:42Z",
+        "topics": []
+      }
+    ]
+  },
+  "languages": {
+    "JavaScript": 60.8,
+    "CSS": 24.1,
+    "HTML": 15.1
+  },
+  "activity": [
+    {
+      "type": "PushEvent",
+      "repo": "chrome-media-extractor",
+      "created_at": "2025-07-20T17:56:17Z",
+      "message": "Pushed 1 commit"
+    },
+    {
+      "type": "CreateEvent",
+      "repo": "chrome-media-extractor",
+      "created_at": "2025-07-20T17:53:50Z",
+      "message": "Created repository"
+    },
+    {
+      "type": "CreateEvent",
+      "repo": "chrome-media-extractor",
+      "created_at": "2025-07-20T17:53:50Z",
+      "message": "Created branch main"
+    },
+    {
+      "type": "PushEvent",
+      "repo": "chrome-recorder",
+      "created_at": "2025-07-20T06:23:29Z",
+      "message": "Pushed 1 commit"
+    },
+    {
+      "type": "PushEvent",
+      "repo": "chrome-recorder",
+      "created_at": "2025-07-20T06:18:36Z",
+      "message": "Pushed 1 commit"
+    },
+    {
+      "type": "CreateEvent",
+      "repo": "chrome-recorder",
+      "created_at": "2025-07-20T05:50:42Z",
+      "message": "Created repository"
+    },
+    {
+      "type": "CreateEvent",
+      "repo": "chrome-recorder",
+      "created_at": "2025-07-20T05:50:42Z",
+      "message": "Created branch main"
+    },
+    {
+      "type": "PushEvent",
+      "repo": "chrome-seotools",
+      "created_at": "2025-07-13T18:41:09Z",
+      "message": "Pushed 1 commit"
+    }
+  ],
+  "stats": {
+    "totalStars": 0,
+    "totalForks": 0,
+    "languageCount": 3,
+    "repoCount": 11
+  },
+  "lastUpdated": "2025-07-22T01:22:04.565Z",
+  "generatedBy": "GitHub Actions"
+}

@@ -1,4 +1,4 @@
-// Main THREE.js Scene Manager - Core Setup Only
+// Liminal Landscape Scene Manager - Core Setup
 class IndustrialScene {
   constructor() {
     this.scene = null;
@@ -7,178 +7,147 @@ class IndustrialScene {
     this.animationId = null;
     this.clock = new THREE.Clock();
     this.mouse = new THREE.Vector2();
-    this.targetMouse = new THREE.Vector2();
 
-    // Visual systems
-    this.voxelSystem = null;
-    this.organicSystem = null;
-    this.dataFlowSystem = null;
-    this.splatSystem = null;
+    // Landscape systems
+    this.terrain = null;
+    this.water = null;
+    this.structures = [];
+    this.vegetation = [];
+    this.cardinal = null;
 
-    // Theme and metrics
-    this.currentTheme = "dark";
-    this.dataMetrics = {
-      complexity: 0.5,
-      activity: 0.3,
-      connections: 0.7,
-    };
+    // Theme and atmosphere
+    this.currentTheme = "monochrome";
+    this.fog = null;
   }
 
   init() {
-    console.log("🎮 Initializing THREE.js scene...");
+    console.log("🌾 Initializing Liminal Landscape...");
 
     try {
       this.setupCore();
       this.setupLighting();
-      this.initializeSystems();
+      this.initializeLandscape();
       this.setupEventListeners();
       this.animate();
-      console.log("✅ THREE.js scene initialized successfully");
+      console.log("✅ Landscape ready");
     } catch (error) {
-      console.error("❌ THREE.js initialization failed:", error);
+      console.error("❌ Landscape initialization failed:", error);
       throw error;
     }
   }
 
   setupCore() {
-    // Scene
+    // Scene with atmospheric fog
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.Fog(0x0a0a0a, 15, 60);
+    this.fog = new THREE.Fog(0xf5f5f5, 20, 100);
+    this.scene.fog = this.fog;
 
-    // Camera
+    // Camera positioned for landscape view
     this.camera = new THREE.PerspectiveCamera(
       60,
       window.innerWidth / window.innerHeight,
       0.1,
       1000,
     );
-    this.camera.position.set(0, 5, 25);
+    this.camera.position.set(8, 12, 25);
+    this.camera.lookAt(0, 0, 0);
 
-    // Renderer
+    // Minimal renderer setup
     const canvas = document.getElementById("three-canvas");
-    if (!canvas) {
-      throw new Error("THREE.js canvas not found");
-    }
+    if (!canvas) throw new Error("Canvas not found");
 
     this.renderer = new THREE.WebGLRenderer({
       canvas: canvas,
       alpha: true,
-      antialias: true,
-      powerPreference: "high-performance",
+      antialias: false, // Low-fi aesthetic
+      powerPreference: "default",
     });
 
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.outputEncoding = THREE.sRGBEncoding;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
+    this.renderer.shadowMap.type = THREE.BasicShadowMap; // Low-fi shadows
+    this.renderer.outputEncoding = THREE.LinearEncoding; // Flat lighting
   }
 
   setupLighting() {
-    // Ambient
-    const ambientLight = new THREE.AmbientLight(0x202040, 0.4);
+    // Soft ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     this.scene.add(ambientLight);
 
-    // Primary directional
-    const primaryLight = new THREE.DirectionalLight(0x4080ff, 0.6);
-    primaryLight.position.set(15, 20, 10);
-    primaryLight.castShadow = true;
-    primaryLight.shadow.mapSize.width = 2048;
-    primaryLight.shadow.mapSize.height = 2048;
-    this.scene.add(primaryLight);
+    // Single directional sun
+    const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    sunLight.position.set(20, 30, 10);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 100;
+    sunLight.shadow.camera.left = -50;
+    sunLight.shadow.camera.right = 50;
+    sunLight.shadow.camera.top = 50;
+    sunLight.shadow.camera.bottom = -50;
+    this.scene.add(sunLight);
 
-    // Accent lights
-    const accentLight = new THREE.PointLight(0xff6040, 0.3, 30);
-    accentLight.position.set(-10, 8, 15);
-    this.scene.add(accentLight);
-
-    this.rimLight = new THREE.PointLight(0x40ff80, 0.4, 25);
-    this.rimLight.position.set(8, -5, 12);
-    this.scene.add(this.rimLight);
+    this.sunLight = sunLight;
   }
 
-  initializeSystems() {
-    // Initialize visual systems safely
-    try {
-      if (window.VoxelSystem) {
-        this.voxelSystem = new VoxelSystem(this.scene);
-        this.voxelSystem.init();
-      }
-    } catch (e) {
-      console.warn("VoxelSystem failed:", e);
+  initializeLandscape() {
+    // Initialize all landscape systems
+    if (window.TerrainSystem) {
+      this.terrain = new TerrainSystem(this.scene);
+      this.terrain.init();
     }
 
-    try {
-      if (window.OrganicSystem) {
-        this.organicSystem = new OrganicSystem(this.scene);
-        this.organicSystem.init();
-      }
-    } catch (e) {
-      console.warn("OrganicSystem failed:", e);
+    if (window.WaterSystem) {
+      this.water = new WaterSystem(this.scene);
+      this.water.init();
     }
 
-    try {
-      if (window.DataFlowSystem) {
-        this.dataFlowSystem = new DataFlowSystem(this.scene);
-        this.dataFlowSystem.init();
-      }
-    } catch (e) {
-      console.warn("DataFlowSystem failed:", e);
+    if (window.StructureSystem) {
+      this.structureSystem = new StructureSystem(this.scene);
+      this.structureSystem.init();
     }
 
-    try {
-      if (window.SplatSystem) {
-        this.splatSystem = new SplatSystem(this.scene);
-        this.splatSystem.init();
-      }
-    } catch (e) {
-      console.warn("SplatSystem failed:", e);
+    if (window.VegetationSystem) {
+      this.vegetationSystem = new VegetationSystem(this.scene);
+      this.vegetationSystem.init();
+    }
+
+    if (window.CardinalSystem) {
+      this.cardinal = new CardinalSystem(this.scene);
+      this.cardinal.init();
     }
   }
 
   updateTheme(theme) {
     this.currentTheme = theme;
 
-    // Update fog
-    const fogColors = {
-      light: 0xf0f0f0,
-      dark: 0x0a0a0a,
-      grey: 0x2a2a2a,
+    // Update fog and lighting based on theme
+    const themes = {
+      light: { fog: 0xf8f8f8, ambient: 0.7 },
+      dark: { fog: 0x2a2a2a, ambient: 0.4 },
+      grey: { fog: 0xe0e0e0, ambient: 0.5 },
+      monochrome: { fog: 0xf5f5f5, ambient: 0.6 },
     };
 
-    this.scene.fog.color.setHex(fogColors[theme]);
+    const currentTheme = themes[theme] || themes.monochrome;
+    this.scene.fog.color.setHex(currentTheme.fog);
 
-    // Update systems
-    if (this.voxelSystem && this.voxelSystem.updateTheme) {
-      this.voxelSystem.updateTheme(theme);
-    }
-    if (this.organicSystem && this.organicSystem.updateTheme) {
-      this.organicSystem.updateTheme(theme);
-    }
-    if (this.dataFlowSystem && this.dataFlowSystem.updateTheme) {
-      this.dataFlowSystem.updateTheme(theme);
-    }
-    if (this.splatSystem && this.splatSystem.updateTheme) {
-      this.splatSystem.updateTheme(theme);
-    }
-  }
-
-  updateDataMetrics(data) {
-    if (data.repos) this.dataMetrics.complexity = Math.min(1, data.repos / 50);
-    if (data.commits)
-      this.dataMetrics.activity = Math.min(1, data.commits / 100);
-    if (data.languages)
-      this.dataMetrics.connections = data.languages.length / 10;
+    // Update all systems
+    if (this.terrain?.updateTheme) this.terrain.updateTheme(theme);
+    if (this.water?.updateTheme) this.water.updateTheme(theme);
+    if (this.structureSystem?.updateTheme)
+      this.structureSystem.updateTheme(theme);
+    if (this.vegetationSystem?.updateTheme)
+      this.vegetationSystem.updateTheme(theme);
+    if (this.cardinal?.updateTheme) this.cardinal.updateTheme(theme);
   }
 
   setupEventListeners() {
     window.addEventListener("mousemove", (event) => {
-      this.targetMouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      this.targetMouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-      this.dataMetrics.activity = Math.min(1, this.dataMetrics.activity + 0.05);
+      this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     });
 
     window.addEventListener("resize", () => {
@@ -187,8 +156,11 @@ class IndustrialScene {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    document.addEventListener("portfolioDataUpdate", (event) => {
-      this.updateDataMetrics(event.detail);
+    // Click to make cardinal move
+    window.addEventListener("click", () => {
+      if (this.cardinal && this.cardinal.triggerMovement) {
+        this.cardinal.triggerMovement();
+      }
     });
   }
 
@@ -196,36 +168,23 @@ class IndustrialScene {
     this.animationId = requestAnimationFrame(() => this.animate());
 
     const time = this.clock.getElapsedTime();
+    const deltaTime = this.clock.getDelta();
 
-    // Smooth mouse following
-    this.mouse.lerp(this.targetMouse, 0.02);
-
-    // Dynamic camera movement
+    // Gentle camera drift
     this.camera.position.x +=
-      (this.mouse.x * 3 - this.camera.position.x) * 0.01;
+      (this.mouse.x * 2 - this.camera.position.x) * 0.003;
     this.camera.position.y +=
-      (-this.mouse.y * 3 - this.camera.position.y) * 0.01;
+      (-this.mouse.y * 2 + 12 - this.camera.position.y) * 0.003;
     this.camera.lookAt(0, 0, 0);
 
-    // Update systems
-    if (this.voxelSystem && this.voxelSystem.update) {
-      this.voxelSystem.update(time, this.dataMetrics);
-    }
-    if (this.organicSystem && this.organicSystem.update) {
-      this.organicSystem.update(time, this.dataMetrics);
-    }
-    if (this.dataFlowSystem && this.dataFlowSystem.update) {
-      this.dataFlowSystem.update(time, this.dataMetrics);
-    }
-    if (this.splatSystem && this.splatSystem.update) {
-      this.splatSystem.update(time, this.dataMetrics);
-    }
-
-    // Decay activity
-    this.dataMetrics.activity = Math.max(
-      0.1,
-      this.dataMetrics.activity * 0.995,
-    );
+    // Update all systems
+    if (this.terrain?.update) this.terrain.update(time, deltaTime);
+    if (this.water?.update) this.water.update(time, deltaTime);
+    if (this.structureSystem?.update)
+      this.structureSystem.update(time, deltaTime);
+    if (this.vegetationSystem?.update)
+      this.vegetationSystem.update(time, deltaTime);
+    if (this.cardinal?.update) this.cardinal.update(time, deltaTime);
 
     this.renderer.render(this.scene, this.camera);
   }
@@ -235,21 +194,13 @@ class IndustrialScene {
       cancelAnimationFrame(this.animationId);
     }
 
-    // Clean up systems
-    if (this.voxelSystem && this.voxelSystem.destroy) {
-      this.voxelSystem.destroy();
-    }
-    if (this.organicSystem && this.organicSystem.destroy) {
-      this.organicSystem.destroy();
-    }
-    if (this.dataFlowSystem && this.dataFlowSystem.destroy) {
-      this.dataFlowSystem.destroy();
-    }
-    if (this.splatSystem && this.splatSystem.destroy) {
-      this.splatSystem.destroy();
-    }
+    // Clean up all systems
+    if (this.terrain?.destroy) this.terrain.destroy();
+    if (this.water?.destroy) this.water.destroy();
+    if (this.structureSystem?.destroy) this.structureSystem.destroy();
+    if (this.vegetationSystem?.destroy) this.vegetationSystem.destroy();
+    if (this.cardinal?.destroy) this.cardinal.destroy();
 
-    // Clean up THREE.js
     this.scene.traverse((object) => {
       if (object.geometry) object.geometry.dispose();
       if (object.material) {
