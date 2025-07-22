@@ -131,112 +131,48 @@ class IndustrialPortfolio {
   loadFallbackContent() {
     console.log("📝 Loading fallback content...");
 
-    // Update profile stats
-    this.updateElement("public-repos", "42");
-    this.updateElement("followers", "128");
-    this.updateElement("following", "73");
+    // Update profile stats - be honest about demo status
+    this.updateElement("public-repos", "--");
+    this.updateElement("followers", "--");
+    this.updateElement("following", "--");
     this.updateElement("user-bio", "v0.1.1");
 
-    // Load fallback languages
-    const languages = {
-      Go: "35.4",
-      Python: "28.7",
-      JavaScript: "22.1",
-      CSS: "8.9",
-      HTML: "4.9",
-    };
-
-    const languageHTML = Object.entries(languages)
-      .map(
-        ([lang, percent]) => `
-                <div class="language-item">
-                    <span class="language-name">${lang}</span>
-                    <span class="language-percent">${percent}%</span>
-                </div>
-            `,
-      )
-      .join("");
+    // Load demo notice for languages
+    const languageHTML = `
+            <div class="demo-notice" style="color: var(--text-muted); font-style: italic; text-align: center; padding: 1rem;">
+                GitHub API rate limited.<br>
+                Add your personal access token to see real data.
+            </div>
+        `;
 
     this.updateElement("languages", languageHTML, true);
 
-    // Load fallback activity
+    // Demo notice for activity
     const activityHTML = `
-            <div class="activity-item">
-                <div>
-                    <div class="activity-title">industrial-portfolio</div>
-                    <div class="repo-description">Updated THREE.js animations</div>
-                </div>
-                <span class="activity-time">2h ago</span>
-            </div>
-            <div class="activity-item">
-                <div>
-                    <div class="activity-title">go-microservices</div>
-                    <div class="repo-description">Optimized performance</div>
-                </div>
-                <span class="activity-time">1d ago</span>
-            </div>
-            <div class="activity-item">
-                <div>
-                    <div class="activity-title">data-pipeline</div>
-                    <div class="repo-description">Added monitoring</div>
-                </div>
-                <span class="activity-time">3d ago</span>
+            <div class="demo-notice" style="color: var(--text-muted); font-style: italic; text-align: center; padding: 1rem;">
+                Real activity feed requires<br>
+                GitHub API authentication
             </div>
         `;
 
     this.updateElement("recent-activity", activityHTML, true);
 
-    // Load fallback repositories
+    // Demo notice for repositories
     const reposHTML = `
-            <div class="repo-item">
-                <div>
-                    <a href="https://github.com/mbarlow/industrial-portfolio" class="repo-name" target="_blank">
-                        industrial-portfolio
-                    </a>
-                    <div class="repo-description">Modern industrial-themed portfolio with THREE.js</div>
-                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
-                        <span>JavaScript</span>
-                        <span>★ 42</span>
-                        <span>⑂ 7</span>
-                    </div>
-                </div>
-            </div>
-            <div class="repo-item">
-                <div>
-                    <a href="https://github.com/mbarlow/go-microservices" class="repo-name" target="_blank">
-                        go-microservices
-                    </a>
-                    <div class="repo-description">Scalable microservice architecture</div>
-                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
-                        <span>Go</span>
-                        <span>★ 89</span>
-                        <span>⑂ 12</span>
-                    </div>
-                </div>
-            </div>
-            <div class="repo-item">
-                <div>
-                    <a href="https://github.com/mbarlow/python-pipeline" class="repo-name" target="_blank">
-                        python-pipeline
-                    </a>
-                    <div class="repo-description">High-performance data processing</div>
-                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
-                        <span>Python</span>
-                        <span>★ 67</span>
-                        <span>⑂ 15</span>
-                    </div>
-                </div>
+            <div class="demo-notice" style="color: var(--text-muted); font-style: italic; text-align: center; padding: 1rem;">
+                Configure GitHub API access<br>
+                to display your repositories
             </div>
         `;
 
     this.updateElement("featured-repos", reposHTML, true);
 
     // Update system info
-    this.updateElement("last-updated", "Just now");
-    this.updateElement("profile-views", "1,247");
-    this.updateAPIStatus("loaded");
+    this.updateElement("last-updated", "Demo mode");
+    this.updateElement("profile-views", "--");
+    this.updateAPIStatus("demo");
 
-    console.log("✅ Fallback content loaded");
+    console.log("✅ Demo content loaded - configure GitHub API for real data");
   }
 
   updateElement(id, content, isHTML = false) {
@@ -254,13 +190,14 @@ class IndustrialPortfolio {
 
   updateAPIStatus(status) {
     const statusMap = {
-      loaded: { text: "Loaded", color: "var(--led-green)" },
+      loaded: { text: "Demo Mode", color: "var(--text-muted)" },
+      demo: { text: "Demo Mode", color: "var(--text-muted)" },
       online: { text: "Online", color: "var(--led-green)" },
-      offline: { text: "Offline", color: "var(--led-red)" },
+      offline: { text: "API Limited", color: "var(--led-red)" },
       error: { text: "Error", color: "var(--led-red)" },
     };
 
-    const statusInfo = statusMap[status] || statusMap.offline;
+    const statusInfo = statusMap[status] || statusMap.demo;
 
     const statusElement = document.getElementById("api-status");
     if (statusElement) {

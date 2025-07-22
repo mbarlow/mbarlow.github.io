@@ -38,12 +38,14 @@ class DataFlowSystem {
       const tubeGeometry = new THREE.TubeGeometry(curve, 64, 0.05, 6, false);
 
       const hue = (i / pathCount) * 0.8; // Spread across color spectrum
-      const flowMaterial = new THREE.MeshBasicMaterial({
+      const flowMaterial = new THREE.MeshLambertMaterial({
         color: new THREE.Color().setHSL(hue, 0.7, 0.5),
         transparent: true,
         opacity: 0.6,
-        emissive: new THREE.Color().setHSL(hue, 0.5, 0.1),
       });
+
+      // Add emissive separately since MeshBasicMaterial doesn't support it
+      flowMaterial.emissive = new THREE.Color().setHSL(hue, 0.5, 0.1);
 
       const flowMesh = new THREE.Mesh(tubeGeometry, flowMaterial);
       flowMesh.userData = {
@@ -143,12 +145,16 @@ class DataFlowSystem {
       const userData = path.userData;
       const intensity = theme === "light" ? 0.3 : theme === "grey" ? 0.6 : 1.0;
 
-      path.material.color
-        .copy(userData.originalColor)
-        .multiplyScalar(intensity);
-      path.material.emissive
-        .copy(userData.originalEmissive)
-        .multiplyScalar(intensity);
+      if (userData.originalColor) {
+        path.material.color
+          .copy(userData.originalColor)
+          .multiplyScalar(intensity);
+      }
+      if (userData.originalEmissive && path.material.emissive) {
+        path.material.emissive
+          .copy(userData.originalEmissive)
+          .multiplyScalar(intensity);
+      }
     });
 
     // Update particle colors
@@ -173,9 +179,12 @@ class DataFlowSystem {
       const activityMultiplier = 0.5 + dataMetrics.activity * 0.5;
 
       path.material.opacity = (0.4 + flow * 0.4) * activityMultiplier;
-      path.material.emissive.multiplyScalar(
-        1 + flow * dataMetrics.connections * 0.3,
-      );
+
+      // Only update emissive if it exists
+      if (path.material.emissive) {
+        const emissiveIntensity = flow * dataMetrics.connections * 0.3;
+        path.material.emissive.setScalar(emissiveIntensity);
+      }
     });
 
     // Update flowing particles
