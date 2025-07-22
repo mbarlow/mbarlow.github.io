@@ -61,20 +61,117 @@ class IndustrialPortfolio {
     console.log("📡 Initializing GitHub data...");
 
     try {
-      // Create portfolio data manager
-      this.portfolioData = new PortfolioData("mbarlow");
+      // Try to load static data file first
+      const response = await fetch("./data/portfolio.json");
 
-      // Try to load real data
-      await this.portfolioData.initialize();
-
-      console.log("✅ GitHub data loaded successfully");
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Loaded static portfolio data");
+        this.loadStaticData(data);
+        this.updateAPIStatus("static");
+      } else {
+        console.log("📝 Static data not found, using demo mode");
+        this.loadFallbackContent();
+        this.updateAPIStatus("demo");
+      }
     } catch (error) {
-      console.error("❌ GitHub data loading failed:", error);
-      console.log("📝 Using fallback content");
-
-      // Update API status to show we're using fallback
-      this.updateAPIStatus("offline");
+      console.error("❌ Failed to load portfolio data:", error);
+      this.loadFallbackContent();
+      this.updateAPIStatus("demo");
     }
+  }
+
+  loadStaticData(data) {
+    console.log("📊 Loading real GitHub data...");
+
+    // Update profile
+    this.updateElement("public-repos", data.profile.public_repos);
+    this.updateElement("followers", data.profile.followers);
+    this.updateElement("following", data.profile.following);
+    this.updateElement("user-bio", data.profile.bio || "v0.1.1");
+
+    // Update languages
+    if (data.languages && Object.keys(data.languages).length > 0) {
+      const languageHTML = Object.entries(data.languages)
+        .map(
+          ([lang, percent]) => `
+                    <div class="language-item">
+                        <span class="language-name">${lang}</span>
+                        <span class="language-percent">${percent}%</span>
+                    </div>
+                `,
+        )
+        .join("");
+      this.updateElement("languages", languageHTML, true);
+    }
+
+    // Update activity
+    if (data.activity && data.activity.length > 0) {
+      const activityHTML = data.activity
+        .map(
+          (activity) => `
+                    <div class="activity-item">
+                        <div>
+                            <div class="activity-title">${activity.repo}</div>
+                            <div class="repo-description">${activity.message}</div>
+                        </div>
+                        <span class="activity-time">${this.formatTimeAgo(new Date(activity.created_at))}</span>
+                    </div>
+                `,
+        )
+        .join("");
+      this.updateElement("recent-activity", activityHTML, true);
+    }
+
+    // Update repositories
+    if (data.repositories && data.repositories.featured.length > 0) {
+      const reposHTML = data.repositories.featured
+        .map(
+          (repo) => `
+                    <div class="repo-item">
+                        <div>
+                            <a href="${repo.html_url}" target="_blank" class="repo-name">
+                                ${repo.name}
+                            </a>
+                            <div class="repo-description">${repo.description || "No description"}</div>
+                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+                                ${repo.language ? `<span>${repo.language}</span>` : ""}
+                                <span>★ ${repo.stargazers_count}</span>
+                                <span>⑂ ${repo.forks_count}</span>
+                            </div>
+                        </div>
+                    </div>
+                `,
+        )
+        .join("");
+      this.updateElement("featured-repos", reposHTML, true);
+    }
+
+    // Update system info
+    this.updateElement(
+      "last-updated",
+      this.formatTimeAgo(new Date(data.lastUpdated)),
+    );
+    this.updateElement(
+      "profile-views",
+      (1200 + Math.floor(Math.random() * 100)).toLocaleString(),
+    );
+
+    console.log("✅ Real GitHub data loaded successfully");
+  }
+
+  formatTimeAgo(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
   }
 
   initThemeSystem() {
@@ -190,7 +287,7 @@ class IndustrialPortfolio {
 
   updateAPIStatus(status) {
     const statusMap = {
-      loaded: { text: "Demo Mode", color: "var(--text-muted)" },
+      static: { text: "Live Data", color: "var(--led-green)" },
       demo: { text: "Demo Mode", color: "var(--text-muted)" },
       online: { text: "Online", color: "var(--led-green)" },
       offline: { text: "API Limited", color: "var(--led-red)" },
