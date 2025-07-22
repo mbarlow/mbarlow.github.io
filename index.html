@@ -3,10 +3,162 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Your Name</title>
+        <title>github.com/mbarlow</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="style.css" />
     </head>
-    <body>
-        <h1>Welcome to my site!</h1>
-        <p>This is served from index.html</p>
+    <body data-theme="dark">
+        <!-- Theme Toggle -->
+        <div class="theme-controls">
+            <button class="theme-btn" data-theme="light">L</button>
+            <button class="theme-btn active" data-theme="dark">D</button>
+            <button class="theme-btn" data-theme="grey">G</button>
+        </div>
+
+        <!-- LED Status Indicators -->
+        <div class="status-leds">
+            <div class="led" id="api-led"></div>
+            <div class="led" id="activity-led"></div>
+            <div class="led" id="connection-led"></div>
+        </div>
+
+        <!-- THREE.js Canvas -->
+        <canvas id="three-canvas"></canvas>
+
+        <!-- Main Content -->
+        <div class="container">
+            <!-- Header Section -->
+            <header class="header">
+                <div class="header-content">
+                    <h1 class="title">
+                        <span class="title-main">github.com/</span>
+                        <span class="title-highlight">mbarlow</span>
+                    </h1>
+                    <div class="subtitle">
+                        <span id="user-bio">Loading developer profile...</span>
+                    </div>
+                </div>
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="public-repos">--</span>
+                        <span class="stat-label">repositories</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="followers">--</span>
+                        <span class="stat-label">followers</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="following">--</span>
+                        <span class="stat-label">following</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Grid -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <h3>Languages</h3>
+                        <div class="led-accent"></div>
+                    </div>
+                    <div class="languages-list" id="languages">
+                        <div class="loading-text">Analyzing codebase...</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <h3>Recent Activity</h3>
+                        <div class="led-accent pulsing"></div>
+                    </div>
+                    <div class="activity-list" id="recent-activity">
+                        <div class="loading-text">Fetching commits...</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <h3>Featured Repos</h3>
+                        <div class="led-accent"></div>
+                    </div>
+                    <div class="repos-list" id="featured-repos">
+                        <div class="loading-text">Loading repositories...</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <h3>System Status</h3>
+                        <div class="led-accent active"></div>
+                    </div>
+                    <div class="system-info">
+                        <div class="system-item">
+                            <span>Last Updated:</span>
+                            <span id="last-updated">--</span>
+                        </div>
+                        <div class="system-item">
+                            <span>API Status:</span>
+                            <span id="api-status">Connecting...</span>
+                        </div>
+                        <div class="system-item">
+                            <span>Profile Views:</span>
+                            <span id="profile-views">--</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Contact Section -->
+            <section class="contact-section">
+                <div class="contact-card">
+                    <h3>Contact Interface</h3>
+                    <div class="contact-methods">
+                        <a
+                            href="mailto:contact@example.com"
+                            class="contact-link"
+                        >
+                            <span class="contact-icon">@</span>
+                            <span>Email Protocol</span>
+                        </a>
+                        <a
+                            href="https://github.com/mbarlow"
+                            class="contact-link"
+                            target="_blank"
+                        >
+                            <span class="contact-icon">&lt;/&gt;</span>
+                            <span>GitHub Interface</span>
+                        </a>
+                        <a
+                            href="https://linkedin.com/in/yourprofile"
+                            class="contact-link"
+                            target="_blank"
+                        >
+                            <span class="contact-icon">◉</span>
+                            <span>LinkedIn Network</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <span>© 2025 Industrial Interface Design</span>
+                <span class="separator">|</span>
+                <span>Powered by GitHub API</span>
+            </div>
+        </footer>
+
+        <!-- Scripts -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script src="github-api.js"></script>
+        <script src="three-scene.js"></script>
+        <script src="app.js"></script>
     </body>
 </html>
