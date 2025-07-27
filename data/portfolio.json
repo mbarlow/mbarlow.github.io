@@ -15,15 +15,27 @@
     "total": 11,
     "featured": [
       {
+        "name": "chrome-pretty-json",
+        "description": "pretty print browser json responses w/ support for themes",
+        "html_url": "https://github.com/mbarlow/chrome-pretty-json",
+        "stargazers_count": 1,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 12,
+        "created_at": "2025-07-03T13:03:19Z",
+        "updated_at": "2025-07-25T01:35:36Z",
+        "topics": []
+      },
+      {
         "name": "mbarlow.github.io",
         "description": null,
         "html_url": "https://github.com/mbarlow/mbarlow.github.io",
         "stargazers_count": 0,
         "forks_count": 0,
         "language": "JavaScript",
-        "size": 42,
+        "size": 47,
         "created_at": "2025-07-03T22:55:17Z",
-        "updated_at": "2025-07-22T03:00:23Z",
+        "updated_at": "2025-07-22T03:00:35Z",
         "topics": []
       },
       {
@@ -73,21 +85,21 @@
         "created_at": "2025-07-11T23:08:33Z",
         "updated_at": "2025-07-11T23:42:50Z",
         "topics": []
-      },
-      {
-        "name": "chrome-adblock",
-        "description": null,
-        "html_url": "https://github.com/mbarlow/chrome-adblock",
-        "stargazers_count": 0,
-        "forks_count": 0,
-        "language": "JavaScript",
-        "size": 106,
-        "created_at": "2025-07-11T01:00:01Z",
-        "updated_at": "2025-07-11T01:51:10Z",
-        "topics": []
       }
     ],
     "all": [
+      {
+        "name": "chrome-pretty-json",
+        "description": "pretty print browser json responses w/ support for themes",
+        "html_url": "https://github.com/mbarlow/chrome-pretty-json",
+        "stargazers_count": 1,
+        "forks_count": 0,
+        "language": "JavaScript",
+        "size": 12,
+        "created_at": "2025-07-03T13:03:19Z",
+        "updated_at": "2025-07-25T01:35:36Z",
+        "topics": []
+      },
       {
         "name": "mbarlow.github.io",
         "description": null,
@@ -95,9 +107,9 @@
         "stargazers_count": 0,
         "forks_count": 0,
         "language": "JavaScript",
-        "size": 42,
+        "size": 47,
         "created_at": "2025-07-03T22:55:17Z",
-        "updated_at": "2025-07-22T03:00:23Z",
+        "updated_at": "2025-07-22T03:00:35Z",
         "topics": []
       },
       {
@@ -185,18 +197,6 @@
         "topics": []
       },
       {
-        "name": "chrome-pretty-json",
-        "description": "pretty print browser json responses w/ support for themes",
-        "html_url": "https://github.com/mbarlow/chrome-pretty-json",
-        "stargazers_count": 0,
-        "forks_count": 0,
-        "language": "JavaScript",
-        "size": 12,
-        "created_at": "2025-07-03T13:03:19Z",
-        "updated_at": "2025-07-03T13:25:40Z",
-        "topics": []
-      },
-      {
         "name": "chrome-snapshot",
         "description": "chrome extension for taking quick snapshots w/ optional annotation",
         "html_url": "https://github.com/mbarlow/chrome-snapshot",
@@ -230,59 +230,59 @@
   "activity": [
     {
       "type": "PushEvent",
+      "repo": "mbarlow.github.io",
+      "created_at": "2025-07-22T03:00:20Z",
+      "message": "Pushed 1 commit"
+    },
+    {
+      "type": "PushEvent",
+      "repo": "mbarlow.github.io",
+      "created_at": "2025-07-22T02:30:28Z",
+      "message": "Pushed 1 commit"
+    },
+    {
+      "type": "PushEvent",
+      "repo": "mbarlow.github.io",
+      "created_at": "2025-07-22T01:16:51Z",
+      "message": "Pushed 1 commit"
+    },
+    {
+      "type": "PushEvent",
+      "repo": "mbarlow.github.io",
+      "created_at": "2025-07-22T01:10:06Z",
+      "message": "Pushed 1 commit"
+    },
+    {
+      "type": "PushEvent",
+      "repo": "mbarlow.github.io",
+      "created_at": "2025-07-22T00:54:02Z",
+      "message": "Pushed 1 commit"
+    },
+    {
+      "type": "PushEvent",
+      "repo": "mbarlow.github.io",
+      "created_at": "2025-07-22T00:32:25Z",
+      "message": "Pushed 1 commit"
+    },
+    {
+      "type": "PushEvent",
+      "repo": "mbarlow.github.io",
+      "created_at": "2025-07-21T23:33:19Z",
+      "message": "Pushed 1 commit"
+    },
+    {
+      "type": "PushEvent",
       "repo": "chrome-media-extractor",
       "created_at": "2025-07-20T17:56:17Z",
-      "message": "Pushed 1 commit"
-    },
-    {
-      "type": "CreateEvent",
-      "repo": "chrome-media-extractor",
-      "created_at": "2025-07-20T17:53:50Z",
-      "message": "Created repository"
-    },
-    {
-      "type": "CreateEvent",
-      "repo": "chrome-media-extractor",
-      "created_at": "2025-07-20T17:53:50Z",
-      "message": "Created branch main"
-    },
-    {
-      "type": "PushEvent",
-      "repo": "chrome-recorder",
-      "created_at": "2025-07-20T06:23:29Z",
-      "message": "Pushed 1 commit"
-    },
-    {
-      "type": "PushEvent",
-      "repo": "chrome-recorder",
-      "created_at": "2025-07-20T06:18:36Z",
-      "message": "Pushed 1 commit"
-    },
-    {
-      "type": "CreateEvent",
-      "repo": "chrome-recorder",
-      "created_at": "2025-07-20T05:50:42Z",
-      "message": "Created repository"
-    },
-    {
-      "type": "CreateEvent",
-      "repo": "chrome-recorder",
-      "created_at": "2025-07-20T05:50:42Z",
-      "message": "Created branch main"
-    },
-    {
-      "type": "PushEvent",
-      "repo": "chrome-seotools",
-      "created_at": "2025-07-13T18:41:09Z",
       "message": "Pushed 1 commit"
     }
   ],
   "stats": {
-    "totalStars": 0,
+    "totalStars": 1,
     "totalForks": 0,
     "languageCount": 3,
     "repoCount": 11
   },
-  "lastUpdated": "2025-07-22T03:00:31.000Z",
+  "lastUpdated": "2025-07-27T00:29:46.354Z",
   "generatedBy": "GitHub Actions"
 }
