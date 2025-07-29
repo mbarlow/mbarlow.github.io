@@ -8,10 +8,17 @@ export class Entity {
     this.id = Entity.nextId++;
     this.components = new Map();
     this.active = true;
+    this.world = null; // Reference to the world
   }
 
   addComponent(component) {
     this.components.set(component.constructor.name, component);
+    
+    // Notify world systems about component addition
+    if (this.world) {
+      this.world.onComponentAdded(this, component);
+    }
+    
     return this;
   }
 

@@ -13,6 +13,7 @@ export class World {
 
   createEntity() {
     const entity = new Entity();
+    entity.world = this; // Set world reference
     this.entities.set(entity.id, entity);
     
     // Notify all systems about the new entity
@@ -21,6 +22,15 @@ export class World {
     }
     
     return entity;
+  }
+  
+  onComponentAdded(entity, component) {
+    // Re-check this entity against all systems
+    for (const system of this.systems.values()) {
+      if (!system.entities.has(entity) && system.matchesRequirements(entity)) {
+        system.addEntity(entity);
+      }
+    }
   }
 
   removeEntity(entityId) {

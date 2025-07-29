@@ -198,16 +198,16 @@ export class ThreeRenderSystem extends System {
       
       if (!transform || !mesh || !mesh.mesh) continue;
       
-      // Update mesh transform from component
-      mesh.mesh.position.copy(transform.position);
-      mesh.mesh.rotation.copy(transform.rotation);
-      mesh.mesh.scale.copy(transform.scale);
-      
-      // Handle animations
+      // Handle animations first (before updating mesh position)
       const animation = entity.getComponent(AnimationComponent);
       if (animation && animation.enabled) {
         this.updateAnimation(entity, animation, deltaTime);
       }
+      
+      // Update mesh transform from component
+      mesh.mesh.position.copy(transform.position);
+      mesh.mesh.rotation.copy(transform.rotation);
+      mesh.mesh.scale.copy(transform.scale);
     }
     
     // Render the scene
