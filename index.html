@@ -105,11 +105,39 @@
 
                         <!-- Chat Input -->
                         <div class="chat-input-container">
+                            <!-- Ollama Status Bar -->
+                            <div class="ollama-status-bar">
+                                <div class="ollama-connection">
+                                    <span class="status-dot"></span>
+                                    <span id="ollama-status" class="ollama-status disconnected">Disconnected</span>
+                                </div>
+                                <div class="model-selector">
+                                    <label for="model-select">Model:</label>
+                                    <select id="model-select" class="model-select">
+                                        <option value="">No models</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Image Upload (hidden by default) -->
+                            <div class="image-upload-container" id="image-upload-container" style="display: none;">
+                                <input type="file" id="image-upload" accept="image/*" multiple style="display: none;">
+                                <button class="image-upload-btn" id="image-upload-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7 10 12 15 17 10"/>
+                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                    Add Images
+                                </button>
+                                <div class="image-preview" id="image-preview"></div>
+                            </div>
+                            
                             <div class="chat-input-wrapper">
                                 <textarea 
                                     class="chat-input" 
                                     id="chat-input" 
-                                    placeholder="Message mbarlow..." 
+                                    placeholder="Message Ollama..." 
                                     rows="1"
                                 ></textarea>
                                 <button class="chat-send" id="chat-send" disabled>

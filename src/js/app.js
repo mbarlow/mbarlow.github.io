@@ -1,5 +1,5 @@
 import { World } from './core/index.js';
-import { RenderSystem, InputSystem, ThreeRenderSystem, LevelLoader } from './systems/index.js';
+import { RenderSystem, InputSystem, ThreeRenderSystem, LevelLoader, AgentSystem } from './systems/index.js';
 
 // Main Application Controller
 class IndustrialPortfolio {
@@ -63,6 +63,11 @@ class IndustrialPortfolio {
     
     // Load the level
     await levelLoader.loadLevel(this.world);
+    
+    // Add agent system for Ollama
+    const agentSystem = new AgentSystem();
+    this.world.addSystem(agentSystem, 'agent');
+    await agentSystem.init();
 
     // Start the ECS world
     this.world.start();
@@ -182,6 +187,9 @@ class IndustrialPortfolio {
 
     const chatInput = document.getElementById("chat-input");
     const chatSend = document.getElementById("chat-send");
+    const modelSelect = document.getElementById("model-select");
+    const imageUploadBtn = document.getElementById("image-upload-btn");
+    const imageUpload = document.getElementById("image-upload");
 
     if (chatInput && chatSend) {
       // Auto-resize textarea
@@ -205,6 +213,27 @@ class IndustrialPortfolio {
 
       // Initial state
       this.updateSendButton(chatInput, chatSend);
+    }
+    
+    // Model selector
+    if (modelSelect) {
+      modelSelect.addEventListener("change", (e) => {
+        const agentSystem = this.world.getSystem('agent');
+        if (agentSystem) {
+          agentSystem.switchModel(e.target.value);
+        }
+      });
+    }
+    
+    // Image upload
+    if (imageUploadBtn && imageUpload) {
+      imageUploadBtn.addEventListener("click", () => {
+        imageUpload.click();
+      });
+      
+      imageUpload.addEventListener("change", async (e) => {
+        await this.handleImageUpload(e.target.files);
+      });
     }
 
     console.log("✅ Chat interface initialized");
@@ -331,7 +360,7 @@ class IndustrialPortfolio {
     button.disabled = !hasText;
   }
 
-  sendMessage() {
+  async sendMessage() {
     const chatInput = document.getElementById("chat-input");
     const message = chatInput.value.trim();
     
@@ -339,18 +368,32 @@ class IndustrialPortfolio {
 
     console.log("📤 Sending message:", message);
     
-    // Add message to chat
-    this.addMessage("user", message);
+    // Get images if any
+    const imagePreview = document.getElementById("image-preview");
+    const images = [];
+    if (imagePreview) {
+      const imageElements = imagePreview.querySelectorAll('img');
+      for (const img of imageElements) {
+        const base64 = img.getAttribute('data-base64');
+        if (base64) images.push(base64);
+      }
+    }
     
-    // Clear input
+    // Clear input and images
     chatInput.value = "";
     this.autoResizeTextarea(chatInput);
     this.updateSendButton(chatInput, document.getElementById("chat-send"));
+    if (imagePreview) imagePreview.innerHTML = "";
     
-    // Simulate response (replace with actual chat logic)
-    setTimeout(() => {
-      this.addMessage("assistant", "Thanks for your message! This is a demo response.");
-    }, 1000);
+    // Send to agent system
+    const agentSystem = this.world.getSystem('agent');
+    if (agentSystem) {
+      await agentSystem.sendMessage(message, images);
+    } else {
+      // Fallback if agent system not ready
+      this.addMessage("user", message);
+      this.addMessage("assistant", "Agent system not initialized. Please check if Ollama is running.");
+    }
   }
 
   addMessage(type, content) {
@@ -375,6 +418,41 @@ class IndustrialPortfolio {
     
     // Scroll to bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  
+  async handleImageUpload(files) {
+    const imagePreview = document.getElementById("image-preview");
+    const agentSystem = this.world.getSystem('agent');
+    
+    if (!agentSystem || !agentSystem.supportsImages) {
+      alert("Current model doesn't support images. Please select a multimodal model like gemma2.");
+      return;
+    }
+    
+    // Clear existing preview
+    imagePreview.innerHTML = "";
+    
+    // Process each file
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      
+      try {
+        const base64 = await agentSystem.processImage(file);
+        
+        // Create preview
+        const img = document.createElement('img');
+        img.src = `data:${file.type};base64,${base64}`;
+        img.setAttribute('data-base64', base64);
+        img.title = 'Click to remove';
+        img.addEventListener('click', () => {
+          img.remove();
+        });
+        
+        imagePreview.appendChild(img);
+      } catch (error) {
+        console.error('Failed to process image:', error);
+      }
+    }
   }
 
   // Debug method to access input system
