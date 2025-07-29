@@ -10,14 +10,59 @@ export class PlayerMovementSystem extends System {
     this.requiredComponents = [TransformComponent, MovementComponent, PlayerControllerComponent];
   }
   
+  onEntityAdded(entity) {
+    console.log('🎮 PlayerMovementSystem: Entity added:', entity.id, 'tag:', entity.tag);
+  }
+  
   update(deltaTime) {
+    // Debug: Log if we have entities
+    if (this.entities.size === 0) {
+      if (Math.random() < 0.005) { // Log occasionally
+        console.log('🎮 PlayerMovementSystem: No entities registered');
+      }
+      return;
+    }
+    
     for (const entity of this.entities) {
       const transform = entity.getComponent(TransformComponent);
       const movement = entity.getComponent(MovementComponent);
       const controller = entity.getComponent(PlayerControllerComponent);
       
-      if (!transform || !movement || !controller) continue;
-      if (!controller.isEnabled || !controller.isFPSMode) continue;
+      if (!transform || !movement || !controller) {
+        console.log('🎮 Missing components on entity:', entity.id, {
+          hasTransform: !!transform,
+          hasMovement: !!movement,
+          hasController: !!controller
+        });
+        continue;
+      }
+      
+      if (!controller.isEnabled) {
+        if (Math.random() < 0.01) { // Log occasionally
+          console.log('🎮 Controller disabled for entity:', entity.id);
+        }
+        continue;
+      }
+      
+      if (!controller.isFPSMode) {
+        if (Math.random() < 0.01) { // Log occasionally
+          console.log('🎮 Not in FPS mode for entity:', entity.id);
+        }
+        continue;
+      }
+      
+      // Debug logging for first few frames
+      if (Math.random() < 0.02) { // Log occasionally
+        console.log('🎮 Player update:', {
+          entityId: entity.id,
+          position: transform.position,
+          input: controller.getMovementInput(),
+          velocity: movement.velocity,
+          onGround: movement.isOnGround,
+          enabled: controller.isEnabled,
+          fpsMode: controller.isFPSMode
+        });
+      }
       
       // Update movement input
       movement.inputVector = controller.getMovementInput();
@@ -97,7 +142,20 @@ export class PlayerMovementSystem extends System {
     }
     
     // Apply velocity to position
-    transform.position.add(movement.velocity.clone().multiplyScalar(deltaTime));
+    const velocityDelta = movement.velocity.clone().multiplyScalar(deltaTime);
+    const oldPosition = transform.position.clone();
+    transform.position.add(velocityDelta);
+    
+    // Debug: Log position changes
+    if (velocityDelta.length() > 0.001) {
+      console.log('🎮 Position change:', {
+        oldPos: oldPosition,
+        newPos: transform.position,
+        velocity: movement.velocity,
+        deltaTime: deltaTime,
+        velocityDelta: velocityDelta
+      });
+    }
     
     // Ground collision
     this.handleGroundCollision(transform, movement);
@@ -136,11 +194,23 @@ export class PlayerMovementSystem extends System {
   
   updateAttachedCamera(entity, transform, movement) {
     const camera = entity.getComponent(CameraComponent);
-    if (camera) {
+    if (camera && camera.camera) {
       // Camera follows player position with height offset
       const eyeHeight = movement.currentHeight * 0.9; // 90% of character height
+      const oldCameraPos = camera.camera.position.clone();
+      
       camera.camera.position.copy(transform.position);
       camera.camera.position.y += eyeHeight - movement.currentHeight / 2;
+      
+      // Debug: Log camera updates
+      console.log('📹 Camera updated:', {
+        playerPos: transform.position,
+        oldCameraPos: oldCameraPos,
+        newCameraPos: camera.camera.position,
+        eyeHeight: eyeHeight
+      });
+    } else {
+      console.log('📹 No camera or camera.camera on entity:', entity.id);
     }
   }
 }

@@ -1,5 +1,5 @@
 import { System } from '../core/System.js';
-import { CameraComponent, TransformComponent } from '../components/index.js';
+import { CameraComponent, TransformComponent, PlayerControllerComponent } from '../components/index.js';
 
 /**
  * CameraSystem - Manages camera entities and updates
@@ -30,11 +30,17 @@ export class CameraSystem extends System {
       
       if (!camera || !transform) continue;
       
-      // Update camera position and rotation
+      // Update camera (but don't override position if it's an FPS camera)
       if (camera.camera) {
-        // Apply transform to camera
-        camera.camera.position.copy(transform.position);
-        camera.camera.rotation.copy(transform.rotation);
+        // Check if this entity has a PlayerControllerComponent (FPS camera)
+        const controller = entity.getComponent(PlayerControllerComponent);
+        const isFPSCamera = controller && controller.isFPSMode;
+        
+        if (!isFPSCamera) {
+          // Only update position/rotation for non-FPS cameras
+          camera.camera.position.copy(transform.position);
+          camera.camera.rotation.copy(transform.rotation);
+        }
         
         // If this is the active camera, update the render system
         if (camera.isActive && this.activeCamera !== camera) {
@@ -60,7 +66,7 @@ export class CameraSystem extends System {
     // Update Three.js render system camera
     if (this.threeRenderSystem && cameraComponent.camera) {
       this.threeRenderSystem.camera = cameraComponent.camera;
-      console.log('📷 Active camera changed');
+      console.log('📷 Active camera changed to:', cameraComponent.camera.position);
     }
   }
   
@@ -86,7 +92,9 @@ export class CameraSystem extends System {
     super.onEntityAdded(entity);
     
     const camera = entity.getComponent(CameraComponent);
+    console.log('📷 CameraSystem: Entity added:', entity.id, 'tag:', entity.tag, 'isActive:', camera?.isActive);
     if (camera && camera.isActive) {
+      console.log('📷 Setting as active camera');
       this.setActiveCamera(camera);
     }
   }

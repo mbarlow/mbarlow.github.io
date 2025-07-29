@@ -171,7 +171,13 @@ export class LevelLoader extends System {
     // Tag the entity for easy reference
     player.tag = 'player';
     
-    console.log('✅ Player created');
+    console.log('✅ Player created with components:', {
+      hasTransform: !!player.getComponent(TransformComponent),
+      hasMovement: !!player.getComponent(MovementComponent), 
+      hasController: !!player.getComponent(PlayerControllerComponent),
+      hasCamera: !!player.getComponent(CameraComponent),
+      entityId: player.id
+    });
     return player;
   }
   

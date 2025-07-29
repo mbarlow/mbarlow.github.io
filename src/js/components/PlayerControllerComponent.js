@@ -64,6 +64,18 @@ export class PlayerControllerComponent extends Component {
     if (this.isKeyPressed('right')) input.x += 1;
     if (this.isKeyPressed('left')) input.x -= 1;
     
+    // Debug: Log input when there's movement
+    if (input.length() > 0) {
+      console.log('🎮 Movement input:', {
+        input: { x: input.x, y: input.y },
+        pressedKeys: Array.from(this.pressedKeys),
+        forward: this.isKeyPressed('forward'),
+        backward: this.isKeyPressed('backward'),
+        left: this.isKeyPressed('left'),
+        right: this.isKeyPressed('right')
+      });
+    }
+    
     // Normalize diagonal movement
     if (input.length() > 1) {
       input.normalize();

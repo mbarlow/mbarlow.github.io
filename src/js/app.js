@@ -386,6 +386,12 @@ class IndustrialPortfolio {
 
     console.log("📤 Sending message:", message);
     
+    // Check for slash commands
+    if (message.startsWith('/')) {
+      await this.handleSlashCommand(message);
+      return;
+    }
+    
     // Get images if any
     const imagePreview = document.getElementById("image-preview");
     const images = [];
@@ -418,6 +424,34 @@ class IndustrialPortfolio {
       // Fallback if agent system not ready
       this.addMessage("user", message);
       this.addMessage("assistant", "Agent system not initialized. Please check if Ollama is running.");
+    }
+  }
+
+  async handleSlashCommand(command) {
+    const chatInput = document.getElementById("chat-input");
+    
+    // Clear input
+    chatInput.value = "";
+    this.autoResizeTextarea(chatInput);
+    this.updateSendButton(chatInput, document.getElementById("chat-send"));
+    
+    // Add command to chat history
+    this.addMessage("user", command);
+    
+    const cmd = command.toLowerCase();
+    
+    if (cmd === '/start') {
+      this.addMessage("assistant", "Starting FPS mode... Use WASD to move, mouse to look around, ~ to toggle chat, Esc to exit.");
+      
+      // Enter FPS mode
+      const fpsControllerSystem = this.world.getSystem('fpsController');
+      if (fpsControllerSystem) {
+        fpsControllerSystem.enterFPSMode();
+      } else {
+        this.addMessage("assistant", "Error: FPS system not available.");
+      }
+    } else {
+      this.addMessage("assistant", `Unknown command: ${command}\n\nAvailable commands:\n/start - Enter FPS mode`);
     }
   }
 

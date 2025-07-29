@@ -11,7 +11,8 @@ export class ThreeRenderSystem extends System {
     
     // Three.js core objects
     this.scene = null;
-    this.camera = null;
+    this.camera = null; // This will be set by CameraSystem
+    this.defaultCamera = null; // Fallback camera
     this.renderer = null;
     this.clock = null;
     
@@ -66,11 +67,14 @@ export class ThreeRenderSystem extends System {
     this.scene = new THREE.Scene();
     this.clock = new THREE.Clock();
     
-    // Setup camera
+    // Setup default/fallback camera
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
-    this.camera.position.set(10, 10, 10);
-    this.camera.lookAt(0, 0, 0);
+    this.defaultCamera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
+    this.defaultCamera.position.set(10, 10, 10);
+    this.defaultCamera.lookAt(0, 0, 0);
+    
+    // Initially use default camera until CameraSystem sets an active one
+    this.camera = this.defaultCamera;
     
     // Setup renderer
     this.renderer = new THREE.WebGLRenderer({ 
@@ -187,8 +191,15 @@ export class ThreeRenderSystem extends System {
     const width = window.innerWidth;
     const height = window.innerHeight;
     
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
+    // Update both cameras
+    if (this.camera) {
+      this.camera.aspect = width / height;
+      this.camera.updateProjectionMatrix();
+    }
+    if (this.defaultCamera) {
+      this.defaultCamera.aspect = width / height;
+      this.defaultCamera.updateProjectionMatrix();
+    }
     
     this.renderer.setSize(width, height);
   }
@@ -219,7 +230,7 @@ export class ThreeRenderSystem extends System {
     }
     
     // Render the scene
-    this.renderer.render(this.scene, this.camera);
+    this.renderer.render(this.scene, this.camera || this.defaultCamera);
   }
   
   updateAnimation(entity, animation, deltaTime) {

@@ -21,15 +21,17 @@ export class FPSControllerSystem extends System {
     this.boundKeyDown = this.handleKeyDown.bind(this);
     this.boundKeyUp = this.handleKeyUp.bind(this);
     this.boundPointerLockChange = this.handlePointerLockChange.bind(this);
-    this.boundClick = this.handleClick.bind(this);
     
     this.setupEventListeners();
   }
   
+  onEntityAdded(entity) {
+    console.log('🎮 FPSControllerSystem: Entity added:', entity.id, 'tag:', entity.tag);
+  }
+  
   setupEventListeners() {
-    // Mouse events
+    // Mouse events (remove click listener)
     document.addEventListener('mousemove', this.boundMouseMove);
-    document.addEventListener('click', this.boundClick);
     
     // Keyboard events
     document.addEventListener('keydown', this.boundKeyDown);
@@ -42,47 +44,20 @@ export class FPSControllerSystem extends System {
     });
     
     // Debug: Log when system is ready
-    console.log('🎮 FPS Controller System ready - click anywhere to enter FPS mode');
-    
-    // Find canvas for debugging
-    setTimeout(() => {
-      const canvas = document.querySelector('canvas');
-      if (canvas) {
-        console.log('🖼️ Found canvas element:', canvas);
-      } else {
-        console.warn('⚠️ No canvas element found');
-      }
-    }, 1000);
+    console.log('🎮 FPS Controller System ready - use /start command to enter FPS mode');
   }
   
-  handleClick(event) {
-    // Enter FPS mode when clicking on the 3D scene (not UI)
-    const target = event.target;
-    console.log('🖱️ Click detected on:', target.tagName, target.className, target.id);
-    
-    // Check if click is on UI elements we want to ignore
-    const isUIElement = target.closest('.sidebar') || 
-                       target.closest('.chat-input-container') || 
-                       target.closest('.ollama-status-compact') || 
-                       target.closest('.fps-indicator') ||
-                       target.tagName === 'BUTTON' ||
-                       target.tagName === 'INPUT' ||
-                       target.tagName === 'TEXTAREA' ||
-                       target.tagName === 'SELECT';
-    
-    if (!isUIElement && !this.isPointerLocked) {
-      console.log('🎮 Attempting to enter FPS mode');
-      this.enterFPSMode();
-    } else if (isUIElement) {
-      console.log('🚫 Ignored click on UI element');
-    }
-  }
   
   handleMouseMove(event) {
     if (!this.isPointerLocked) return;
     
     const deltaX = event.movementX || 0;
     const deltaY = event.movementY || 0;
+    
+    // Debug mouse movement occasionally
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      console.log('🖱️ Mouse move:', deltaX, deltaY);
+    }
     
     // Update all player controllers
     for (const entity of this.entities) {
@@ -114,11 +89,17 @@ export class FPSControllerSystem extends System {
     // Don't process other keys if chat is visible
     if (this.chatVisible) return;
     
+    // Debug key presses in FPS mode
+    if (this.isPointerLocked) {
+      console.log('🎮 Key pressed:', event.code);
+    }
+    
     // Update all player controllers
     for (const entity of this.entities) {
       const controller = entity.getComponent(PlayerControllerComponent);
       if (controller && controller.isFPSMode) {
         controller.setKeyPressed(event.code, true);
+        console.log('🎮 Key set on entity:', entity.id, 'key:', event.code);
       }
     }
   }
@@ -183,16 +164,24 @@ export class FPSControllerSystem extends System {
     // Hide UI
     this.hideUI();
     
-    // Show instructions briefly
-    this.showInstructions();
-    
     // Update all controllers
+    console.log('🎮 FPS Controller entities:', this.entities.size);
     for (const entity of this.entities) {
       const controller = entity.getComponent(PlayerControllerComponent);
       if (controller) {
+        console.log('🎮 Enabling FPS mode for entity:', entity.id, 'tag:', entity.tag);
         controller.enterFPSMode();
+        console.log('🎮 Controller state after enabling:', {
+          isEnabled: controller.isEnabled,
+          isFPSMode: controller.isFPSMode,
+          hasPointerLock: controller.hasPointerLock
+        });
+      } else {
+        console.log('🎮 Entity missing PlayerControllerComponent:', entity.id, 'tag:', entity.tag);
       }
     }
+    
+    console.log('🎮 FPS mode active, entities with controllers:', this.entities.size);
   }
   
   exitFPSMode() {
@@ -294,17 +283,6 @@ export class FPSControllerSystem extends System {
     document.body.classList.remove('fps-mode');
   }
   
-  showInstructions() {
-    const instructions = document.getElementById('fps-instructions');
-    if (instructions) {
-      instructions.classList.add('show');
-      
-      // Hide after 3 seconds
-      setTimeout(() => {
-        instructions.classList.remove('show');
-      }, 3000);
-    }
-  }
   
   update(deltaTime) {
     // System update logic if needed
@@ -313,7 +291,6 @@ export class FPSControllerSystem extends System {
   destroy() {
     // Clean up event listeners
     document.removeEventListener('mousemove', this.boundMouseMove);
-    document.removeEventListener('click', this.boundClick);
     document.removeEventListener('keydown', this.boundKeyDown);
     document.removeEventListener('keyup', this.boundKeyUp);
     document.removeEventListener('pointerlockchange', this.boundPointerLockChange);
