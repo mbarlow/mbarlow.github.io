@@ -1,5 +1,5 @@
 import { World } from './core/index.js';
-import { RenderSystem, InputSystem } from './systems/index.js';
+import { RenderSystem, InputSystem, ThreeRenderSystem, LevelLoader } from './systems/index.js';
 
 // Main Application Controller
 class IndustrialPortfolio {
@@ -34,7 +34,7 @@ class IndustrialPortfolio {
       this.initChatInterface();
 
       // Initialize ECS
-      this.initECS();
+      await this.initECS();
 
       this.initialized = true;
       console.log("✅ Industrial Portfolio initialized successfully");
@@ -43,12 +43,26 @@ class IndustrialPortfolio {
     }
   }
 
-  initECS() {
+  async initECS() {
     console.log("🎮 Initializing ECS...");
 
     // Add core systems
     this.world.addSystem(new RenderSystem(), 'render');
     this.world.addSystem(new InputSystem(), 'input');
+    
+    // Add Three.js render system
+    const threeRender = new ThreeRenderSystem();
+    this.world.addSystem(threeRender, 'threeRender');
+    
+    // Initialize Three.js system
+    threeRender.init();
+    
+    // Add level loader
+    const levelLoader = new LevelLoader();
+    this.world.addSystem(levelLoader, 'levelLoader');
+    
+    // Load the level
+    await levelLoader.loadLevel(this.world);
 
     // Start the ECS world
     this.world.start();
