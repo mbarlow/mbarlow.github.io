@@ -1,5 +1,5 @@
 import { World } from './core/index.js';
-import { RenderSystem } from './systems/index.js';
+import { RenderSystem, InputSystem } from './systems/index.js';
 
 // Main Application Controller
 class IndustrialPortfolio {
@@ -48,6 +48,7 @@ class IndustrialPortfolio {
 
     // Add core systems
     this.world.addSystem(new RenderSystem(), 'render');
+    this.world.addSystem(new InputSystem(), 'input');
 
     // Start the ECS world
     this.world.start();
@@ -362,6 +363,11 @@ class IndustrialPortfolio {
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
+  // Debug method to access input system
+  getInputSystem() {
+    return this.world.getSystem('input');
+  }
+
   // Cleanup
   destroy() {
     if (this.world) {
@@ -382,7 +388,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Mark as ready
   document.body.classList.add("app-ready");
+  
+  // Debug info
   console.log("🎉 Industrial Portfolio ready!");
+  console.log("🎹 InputSystem loaded - Try these shortcuts:");
+  console.log("  - Press '/' or Space to focus chat input");
+  console.log("  - Press Escape to close dropdowns");
+  console.log("  - Press 1/2/3 to switch themes");
+  console.log("  - Use arrow keys for navigation");
+  console.log("  - Type 'window.industrialPortfolio.getInputSystem().debugKeyStates()' to see key states");
 });
 
 // Handle cleanup
