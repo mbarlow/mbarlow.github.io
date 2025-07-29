@@ -66,7 +66,6 @@ export class CameraSystem extends System {
     // Update Three.js render system camera
     if (this.threeRenderSystem && cameraComponent.camera) {
       this.threeRenderSystem.camera = cameraComponent.camera;
-      console.log('📷 Active camera changed to:', cameraComponent.camera.position);
     }
   }
   
@@ -92,9 +91,7 @@ export class CameraSystem extends System {
     super.onEntityAdded(entity);
     
     const camera = entity.getComponent(CameraComponent);
-    console.log('📷 CameraSystem: Entity added:', entity.id, 'tag:', entity.tag, 'isActive:', camera?.isActive);
     if (camera && camera.isActive) {
-      console.log('📷 Setting as active camera');
       this.setActiveCamera(camera);
     }
   }
