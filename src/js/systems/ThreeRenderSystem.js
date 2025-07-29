@@ -50,6 +50,11 @@ export class ThreeRenderSystem extends System {
     
     this.currentTheme = 'dark';
     this.initialized = false;
+    
+    // FPS tracking
+    this.frameCount = 0;
+    this.lastFpsUpdate = 0;
+    this.fps = 0;
   }
   
   init() {
@@ -191,6 +196,9 @@ export class ThreeRenderSystem extends System {
   update(deltaTime) {
     if (!this.initialized) return;
     
+    // Update FPS counter
+    this.updateFPS();
+    
     // Update all entities with mesh components
     for (const entity of this.entities) {
       const transform = entity.getComponent(TransformComponent);
@@ -246,6 +254,24 @@ export class ThreeRenderSystem extends System {
   
   getThemeColor(colorType) {
     return this.themeColors[this.currentTheme][colorType];
+  }
+  
+  updateFPS() {
+    this.frameCount++;
+    const now = performance.now();
+    
+    // Update FPS every second
+    if (now - this.lastFpsUpdate >= 1000) {
+      this.fps = this.frameCount;
+      this.frameCount = 0;
+      this.lastFpsUpdate = now;
+      
+      // Update FPS display
+      const fpsElement = document.getElementById('fps-value');
+      if (fpsElement) {
+        fpsElement.textContent = this.fps;
+      }
+    }
   }
   
   destroy() {
