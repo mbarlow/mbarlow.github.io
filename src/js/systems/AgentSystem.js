@@ -275,7 +275,7 @@ export class AgentSystem extends System {
     // Update UI to show connection status
     const statusElement = document.getElementById('ollama-status');
     if (statusElement) {
-      statusElement.textContent = connected ? 'Connected' : 'Disconnected';
+      statusElement.textContent = connected ? 'Online' : 'Offline';
       statusElement.className = `ollama-status ${connected ? 'connected' : 'disconnected'}`;
     }
   }

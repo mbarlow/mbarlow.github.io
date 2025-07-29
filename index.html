@@ -105,20 +105,6 @@
 
                         <!-- Chat Input -->
                         <div class="chat-input-container">
-                            <!-- Ollama Status Bar -->
-                            <div class="ollama-status-bar">
-                                <div class="ollama-connection">
-                                    <span class="status-dot"></span>
-                                    <span id="ollama-status" class="ollama-status disconnected">Disconnected</span>
-                                </div>
-                                <div class="model-selector">
-                                    <label for="model-select">Model:</label>
-                                    <select id="model-select" class="model-select">
-                                        <option value="">No models</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
                             <!-- Image Upload (hidden by default) -->
                             <div class="image-upload-container" id="image-upload-container" style="display: none;">
                                 <input type="file" id="image-upload" accept="image/*" multiple style="display: none;">
@@ -201,6 +187,17 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Ollama Status (Top Right) -->
+        <div class="ollama-status-compact">
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span id="ollama-status" class="ollama-status disconnected">Offline</span>
+            </div>
+            <select id="model-select" class="model-select-compact">
+                <option value="">No models</option>
+            </select>
         </div>
 
         <!-- FPS Indicator -->
