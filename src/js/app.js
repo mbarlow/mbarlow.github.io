@@ -431,8 +431,13 @@ class IndustrialPortfolio {
     const imagePreview = document.getElementById("image-preview");
     const agentSystem = this.world.getSystem('agent');
     
-    if (!agentSystem || !agentSystem.supportsImages) {
-      alert("Current model doesn't support images. Please select a multimodal model like gemma2.");
+    if (!agentSystem) {
+      alert("AgentSystem not ready. Please wait for Ollama to connect.");
+      return;
+    }
+    
+    if (!agentSystem.supportsImages) {
+      alert(`Current model "${agentSystem.currentModel}" doesn't support images. Please select a multimodal model like gemma2 or gemma3.`);
       return;
     }
     
@@ -471,10 +476,18 @@ class IndustrialPortfolio {
 
   async handlePaste(event) {
     const clipboardData = event.clipboardData || window.clipboardData;
-    if (!clipboardData) return;
+    if (!clipboardData) {
+      console.log('📋 No clipboard data available');
+      return;
+    }
 
     const items = clipboardData.items;
     const imageFiles = [];
+    
+    console.log('📋 Clipboard items:', items.length);
+    for (let i = 0; i < items.length; i++) {
+      console.log(`📋 Item ${i}: type=${items[i].type}, kind=${items[i].kind}`);
+    }
 
     // Look for images in clipboard
     for (let i = 0; i < items.length; i++) {
@@ -484,6 +497,7 @@ class IndustrialPortfolio {
         const file = item.getAsFile();
         if (file) {
           imageFiles.push(file);
+          console.log('📋 Found image file:', file.name, file.type, file.size);
         }
       }
     }
@@ -492,6 +506,8 @@ class IndustrialPortfolio {
     if (imageFiles.length > 0) {
       console.log('📋 Pasted', imageFiles.length, 'image(s)');
       await this.handleImageUpload(imageFiles);
+    } else {
+      console.log('📋 No images found in clipboard');
     }
   }
 
