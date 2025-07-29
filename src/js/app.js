@@ -390,7 +390,14 @@ class IndustrialPortfolio {
     chatInput.value = "";
     this.autoResizeTextarea(chatInput);
     this.updateSendButton(chatInput, document.getElementById("chat-send"));
-    if (imagePreview) imagePreview.innerHTML = "";
+    if (imagePreview) {
+      imagePreview.innerHTML = "";
+      // Hide image container
+      const imageContainer = document.getElementById("image-upload-container");
+      if (imageContainer) {
+        imageContainer.style.display = 'none';
+      }
+    }
     
     // Send to agent system
     const agentSystem = this.world.getSystem('agent');
@@ -443,7 +450,7 @@ class IndustrialPortfolio {
     
     // Show image upload container if hidden
     const imageContainer = document.getElementById("image-upload-container");
-    if (imageContainer) {
+    if (imageContainer && files.length > 0) {
       imageContainer.style.display = 'block';
     }
     
@@ -463,7 +470,10 @@ class IndustrialPortfolio {
           img.remove();
           // Hide container if no images left
           if (imagePreview.children.length === 0) {
-            imageContainer.style.display = 'none';
+            const imageContainer = document.getElementById("image-upload-container");
+            if (imageContainer) {
+              imageContainer.style.display = 'none';
+            }
           }
         });
         

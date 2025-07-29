@@ -403,9 +403,15 @@ export class AgentSystem extends System {
   }
 
   updateImageUploadUI() {
-    const imageUpload = document.getElementById("image-upload-container");
-    if (imageUpload) {
-      imageUpload.style.display = this.supportsImages ? "block" : "none";
+    const imageUploadBtn = document.getElementById("image-upload-btn");
+    if (imageUploadBtn) {
+      if (this.supportsImages) {
+        imageUploadBtn.style.display = "flex";
+        imageUploadBtn.disabled = false;
+      } else {
+        imageUploadBtn.style.display = "none";
+        imageUploadBtn.disabled = true;
+      }
     }
   }
 
