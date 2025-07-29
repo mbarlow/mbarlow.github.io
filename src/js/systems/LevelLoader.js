@@ -1,5 +1,5 @@
 import { System } from '../core/System.js';
-import { TransformComponent, MeshComponent, AnimationComponent } from '../components/index.js';
+import { TransformComponent, MeshComponent, AnimationComponent, CameraComponent, MovementComponent, PlayerControllerComponent } from '../components/index.js';
 
 /**
  * LevelLoader - Loads level data from JSON or creates default environment
@@ -41,6 +41,9 @@ export class LevelLoader extends System {
     
     // Create floor plane for shadow receiving
     this.createFloorPlane(world);
+    
+    // Create player entity
+    this.createPlayer(world);
     
     console.log('✅ Default environment created');
   }
@@ -123,6 +126,53 @@ export class LevelLoader extends System {
     }
     
     console.log('✅ Floor plane created');
+  }
+  
+  createPlayer(world) {
+    console.log('🎮 Creating player...');
+    
+    // Create player entity
+    const player = world.createEntity();
+    
+    // Add transform component (spawn position)
+    const transform = new TransformComponent({
+      position: { x: 0, y: 2, z: 5 } // Start 5 units back from origin, 2 units up
+    });
+    player.addComponent(transform);
+    
+    // Add movement component
+    const movement = new MovementComponent({
+      walkSpeed: 5.0,
+      runSpeed: 8.0,
+      jumpForce: 10.0,
+      crouchSpeed: 2.0,
+      characterHeight: 1.8,
+      crouchHeight: 1.2,
+      groundHeight: 0
+    });
+    player.addComponent(movement);
+    
+    // Add player controller component
+    const controller = new PlayerControllerComponent({
+      isEnabled: true,
+      isFPSMode: false,
+      mouseSensitivity: 1.0
+    });
+    player.addComponent(controller);
+    
+    // Add camera component
+    const camera = new CameraComponent({
+      fov: 75,
+      isActive: true,
+      sensitivity: 0.002
+    });
+    player.addComponent(camera);
+    
+    // Tag the entity for easy reference
+    player.tag = 'player';
+    
+    console.log('✅ Player created');
+    return player;
   }
   
   async createLevelFromData(world, levelData) {

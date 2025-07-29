@@ -3,3 +3,6 @@ export { Renderable } from './Renderable.js';
 export { TransformComponent } from './TransformComponent.js';
 export { MeshComponent } from './MeshComponent.js';
 export { AnimationComponent } from './AnimationComponent.js';
+export { CameraComponent } from './CameraComponent.js';
+export { MovementComponent } from './MovementComponent.js';
+export { PlayerControllerComponent } from './PlayerControllerComponent.js';

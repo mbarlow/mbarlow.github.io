@@ -877,6 +877,52 @@ body {
     cursor: pointer;
 }
 
+/* FPS Mode */
+body.fps-mode {
+    cursor: none;
+    overflow: hidden;
+}
+
+body.fps-mode .sidebar,
+body.fps-mode .chat-input-container,
+body.fps-mode .chat-messages,
+body.fps-mode .ollama-status-compact,
+body.fps-mode .fps-indicator {
+    display: none !important;
+}
+
+/* FPS Mode Instructions */
+.fps-instructions {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px;
+    border-radius: var(--border-radius);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    text-align: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.fps-instructions.show {
+    opacity: 1;
+}
+
+.fps-instructions h3 {
+    margin-bottom: 10px;
+    color: #10b981;
+}
+
+.fps-instructions p {
+    margin: 5px 0;
+}
+
 /* Loading States */
 @keyframes pulse {
     0%, 100% {
