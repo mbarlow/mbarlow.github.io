@@ -1,0 +1,1 @@
+export { EntityFactory } from './EntityFactory.js';

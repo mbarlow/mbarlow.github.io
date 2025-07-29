@@ -10,7 +10,7 @@
             href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap"
             rel="stylesheet"
         />
-        <link rel="stylesheet" href="style.css" />
+        <link rel="stylesheet" href="src/css/style.css" />
     </head>
     <body data-theme="dark">
         <!-- Theme Toggle -->
@@ -27,9 +27,6 @@
             <div class="led" id="connection-led"></div>
         </div>
 
-        <!-- THREE.js Canvas -->
-        <canvas id="three-canvas"></canvas>
-
         <!-- Main Content -->
         <div class="container">
             <!-- Header Section -->
@@ -43,75 +40,7 @@
                         <span id="user-bio">Loading developer profile...</span>
                     </div>
                 </div>
-                <div class="header-stats">
-                    <div class="stat-item">
-                        <span class="stat-value" id="public-repos">--</span>
-                        <span class="stat-label">repositories</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="followers">--</span>
-                        <span class="stat-label">followers</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="following">--</span>
-                        <span class="stat-label">following</span>
-                    </div>
-                </div>
             </header>
-
-            <!-- Stats Grid -->
-            <section class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-card-header">
-                        <h3>Languages</h3>
-                        <div class="led-accent"></div>
-                    </div>
-                    <div class="languages-list" id="languages">
-                        <div class="loading-text">Analyzing codebase...</div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-card-header">
-                        <h3>Recent Activity</h3>
-                        <div class="led-accent pulsing"></div>
-                    </div>
-                    <div class="activity-list" id="recent-activity">
-                        <div class="loading-text">Fetching commits...</div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-card-header">
-                        <h3>Featured Repos</h3>
-                        <div class="led-accent"></div>
-                    </div>
-                    <div class="repos-list" id="featured-repos">
-                        <div class="loading-text">Loading repositories...</div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-card-header">
-                        <h3>System Status</h3>
-                        <div class="led-accent active"></div>
-                    </div>
-                    <div class="system-info">
-                        <div class="system-item">
-                            <span>Last Updated:</span>
-                            <span id="last-updated">--</span>
-                        </div>
-                        <div class="system-item">
-                            <span>API Status:</span>
-                            <span id="api-status">Connecting...</span>
-                        </div>
-                        <div class="system-item">
-                            <span>Profile Views:</span>
-                            <span id="profile-views">--</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             <!-- Contact Section -->
             <section class="contact-section">
@@ -150,15 +79,10 @@
         <footer class="footer">
             <div class="footer-content">
                 <span>© 2025 Industrial Interface Design</span>
-                <span class="separator">|</span>
-                <span>Powered by GitHub API</span>
             </div>
         </footer>
 
         <!-- Scripts -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-        <script src="github-api.js"></script>
-        <script src="three-scene.js"></script>
-        <script src="app.js"></script>
+        <script type="module" src="src/js/app.js"></script>
     </body>
 </html>
