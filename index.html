@@ -7,162 +7,174 @@
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
-            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500;600;700&family=Ubuntu+Mono:wght@400;700&family=Source+Sans+Pro:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Lato:wght@300;400;700;900&family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap"
             rel="stylesheet"
         />
-        <link rel="stylesheet" href="style.css" />
+        <link rel="stylesheet" href="src/css/style.css" />
     </head>
     <body data-theme="dark">
-        <!-- Theme Toggle -->
-        <div class="theme-controls">
-            <button class="theme-btn" data-theme="light">L</button>
-            <button class="theme-btn active" data-theme="dark">D</button>
-            <button class="theme-btn" data-theme="grey">G</button>
-        </div>
-
-        <!-- LED Status Indicators -->
-        <div class="status-leds">
-            <div class="led" id="api-led"></div>
-            <div class="led" id="activity-led"></div>
-            <div class="led" id="connection-led"></div>
-        </div>
-
-        <!-- THREE.js Canvas -->
-        <canvas id="three-canvas"></canvas>
-
-        <!-- Main Content -->
-        <div class="container">
-            <!-- Header Section -->
-            <header class="header">
-                <div class="header-content">
-                    <h1 class="title">
+        <!-- App Container -->
+        <div class="app">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <!-- Sidebar Header -->
+                <div class="sidebar-header">
+                    <button class="sidebar-toggle" id="sidebar-toggle">
+                        <svg class="sidebar-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12h18m-9-9l9 9-9 9"/>
+                        </svg>
+                    </button>
+                    <div class="sidebar-title">
                         <span class="title-main">github.com/</span>
                         <span class="title-highlight">mbarlow</span>
-                    </h1>
-                    <div class="subtitle">
-                        <span id="user-bio">Loading developer profile...</span>
-                    </div>
-                </div>
-                <div class="header-stats">
-                    <div class="stat-item">
-                        <span class="stat-value" id="public-repos">--</span>
-                        <span class="stat-label">repositories</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="followers">--</span>
-                        <span class="stat-label">followers</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="following">--</span>
-                        <span class="stat-label">following</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Stats Grid -->
-            <section class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-card-header">
-                        <h3>Languages</h3>
-                        <div class="led-accent"></div>
-                    </div>
-                    <div class="languages-list" id="languages">
-                        <div class="loading-text">Analyzing codebase...</div>
                     </div>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-card-header">
-                        <h3>Recent Activity</h3>
-                        <div class="led-accent pulsing"></div>
-                    </div>
-                    <div class="activity-list" id="recent-activity">
-                        <div class="loading-text">Fetching commits...</div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-card-header">
-                        <h3>Featured Repos</h3>
-                        <div class="led-accent"></div>
-                    </div>
-                    <div class="repos-list" id="featured-repos">
-                        <div class="loading-text">Loading repositories...</div>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-card-header">
-                        <h3>System Status</h3>
-                        <div class="led-accent active"></div>
-                    </div>
-                    <div class="system-info">
-                        <div class="system-item">
-                            <span>Last Updated:</span>
-                            <span id="last-updated">--</span>
+                <!-- Sidebar Content -->
+                <div class="sidebar-content">
+                    <!-- Navigation -->
+                    <nav class="sidebar-nav">
+                        <div class="nav-section">
+                            <div class="nav-item active" data-view="chat">
+                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span class="nav-label">Chat</span>
+                            </div>
+                            <div class="nav-item" data-view="projects">
+                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span class="nav-label">Projects</span>
+                            </div>
+                            <div class="nav-item" data-view="about">
+                                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                    <path d="M12 17h.01"/>
+                                </svg>
+                                <span class="nav-label">About</span>
+                            </div>
                         </div>
-                        <div class="system-item">
-                            <span>API Status:</span>
-                            <span id="api-status">Connecting...</span>
+                    </nav>
+
+                    <!-- Sidebar Footer -->
+                    <div class="sidebar-footer">
+                        <!-- Font Controls -->
+                        <div class="font-controls-sidebar">
+                            <button class="font-toggle" id="font-toggle" title="Change Font">
+                                <svg class="font-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 7V4h16v3M9 20h6M12 4v16"/>
+                                </svg>
+                                <span class="font-label">Font</span>
+                            </button>
                         </div>
-                        <div class="system-item">
-                            <span>Profile Views:</span>
-                            <span id="profile-views">--</span>
+                        
+                        <!-- Theme Controls -->
+                        <div class="theme-controls-sidebar">
+                            <div class="theme-group">
+                                <button class="theme-btn" data-theme="light" title="Light">L</button>
+                                <button class="theme-btn active" data-theme="dark" title="Dark">D</button>
+                                <button class="theme-btn" data-theme="grey" title="Grey">G</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </section>
+            </aside>
 
-            <!-- Contact Section -->
-            <section class="contact-section">
-                <div class="contact-card">
-                    <h3>Contact Interface</h3>
-                    <div class="contact-methods">
-                        <a
-                            href="mailto:contact@example.com"
-                            class="contact-link"
-                        >
-                            <span class="contact-icon">@</span>
-                            <span>Email Protocol</span>
-                        </a>
-                        <a
-                            href="https://github.com/mbarlow"
-                            class="contact-link"
-                            target="_blank"
-                        >
-                            <span class="contact-icon">&lt;/&gt;</span>
-                            <span>GitHub Interface</span>
-                        </a>
-                        <a
-                            href="https://linkedin.com/in/yourprofile"
-                            class="contact-link"
-                            target="_blank"
-                        >
-                            <span class="contact-icon">◉</span>
-                            <span>LinkedIn Network</span>
-                        </a>
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <!-- Chat View -->
+                <div class="view active" id="chat-view">
+                    <div class="chat-container">
+                        <!-- Chat Messages -->
+                        <div class="chat-messages" id="chat-messages">
+                            <div class="chat-welcome">
+                                <div class="welcome-logo">
+                                    <div class="logo-text">
+                                        <span class="logo-main">github.com/</span>
+                                        <span class="logo-highlight">mbarlow</span>
+                                    </div>
+                                </div>
+                                <div class="welcome-subtitle">
+                                    How can I help you today?
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Input -->
+                        <div class="chat-input-container">
+                            <div class="chat-input-wrapper">
+                                <textarea 
+                                    class="chat-input" 
+                                    id="chat-input" 
+                                    placeholder="Message mbarlow..." 
+                                    rows="1"
+                                ></textarea>
+                                <button class="chat-send" id="chat-send" disabled>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 2L11 13"/>
+                                        <path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </section>
+
+                <!-- Projects View -->
+                <div class="view" id="projects-view">
+                    <div class="view-content">
+                        <h2>Projects</h2>
+                        <p>Project listings will go here...</p>
+                    </div>
+                </div>
+
+                <!-- About View -->
+                <div class="view" id="about-view">
+                    <div class="view-content">
+                        <h2>About</h2>
+                        <p>About information will go here...</p>
+                    </div>
+                </div>
+            </main>
         </div>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-content">
-                <span>© 2025 Industrial Interface Design</span>
-                <span class="separator">|</span>
-                <span>Powered by GitHub API</span>
+        <!-- Font Selection Dropdown -->
+        <div class="font-dropdown" id="font-dropdown">
+            <div class="font-dropdown-content">
+                <div class="font-dropdown-header">
+                    <span>Select Font</span>
+                    <button class="font-dropdown-close" id="font-dropdown-close">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="font-options">
+                    <div class="font-section">
+                        <div class="font-section-title">Monospace (Code)</div>
+                        <button class="font-option" data-font="JetBrains Mono">JetBrains Mono</button>
+                        <button class="font-option" data-font="Fira Code">Fira Code</button>
+                        <button class="font-option" data-font="Source Code Pro">Source Code Pro</button>
+                        <button class="font-option" data-font="Roboto Mono">Roboto Mono</button>
+                        <button class="font-option" data-font="Ubuntu Mono">Ubuntu Mono</button>
+                    </div>
+                    <div class="font-section">
+                        <div class="font-section-title">Sans Serif (Interface)</div>
+                        <button class="font-option" data-font="Inter">Inter</button>
+                        <button class="font-option" data-font="Source Sans Pro">Source Sans Pro</button>
+                        <button class="font-option" data-font="Roboto">Roboto</button>
+                        <button class="font-option" data-font="Open Sans">Open Sans</button>
+                        <button class="font-option" data-font="Lato">Lato</button>
+                        <button class="font-option" data-font="Poppins">Poppins</button>
+                        <button class="font-option" data-font="Nunito">Nunito</button>
+                    </div>
+                </div>
             </div>
-        </footer>
+        </div>
 
         <!-- Scripts -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-        <script src="terrain-system.js"></script>
-        <script src="water-system.js"></script>
-        <script src="structure-system.js"></script>
-        <script src="vegetation-system.js"></script>
-        <script src="cardinal-system.js"></script>
-        <script src="three-scene.js"></script>
-        <script src="app.js"></script>
+        <script type="module" src="src/js/app.js"></script>
     </body>
 </html>
