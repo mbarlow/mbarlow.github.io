@@ -235,6 +235,13 @@ class IndustrialPortfolio {
         await this.handleImageUpload(e.target.files);
       });
     }
+    
+    // Clipboard paste support
+    if (chatInput) {
+      chatInput.addEventListener("paste", async (e) => {
+        await this.handlePaste(e);
+      });
+    }
 
     console.log("✅ Chat interface initialized");
   }
@@ -429,8 +436,11 @@ class IndustrialPortfolio {
       return;
     }
     
-    // Clear existing preview
-    imagePreview.innerHTML = "";
+    // Show image upload container if hidden
+    const imageContainer = document.getElementById("image-upload-container");
+    if (imageContainer) {
+      imageContainer.style.display = 'block';
+    }
     
     // Process each file
     for (const file of files) {
@@ -446,12 +456,42 @@ class IndustrialPortfolio {
         img.title = 'Click to remove';
         img.addEventListener('click', () => {
           img.remove();
+          // Hide container if no images left
+          if (imagePreview.children.length === 0) {
+            imageContainer.style.display = 'none';
+          }
         });
         
         imagePreview.appendChild(img);
       } catch (error) {
         console.error('Failed to process image:', error);
       }
+    }
+  }
+
+  async handlePaste(event) {
+    const clipboardData = event.clipboardData || window.clipboardData;
+    if (!clipboardData) return;
+
+    const items = clipboardData.items;
+    const imageFiles = [];
+
+    // Look for images in clipboard
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/')) {
+        event.preventDefault(); // Prevent default paste behavior for images
+        const file = item.getAsFile();
+        if (file) {
+          imageFiles.push(file);
+        }
+      }
+    }
+
+    // Process images if found
+    if (imageFiles.length > 0) {
+      console.log('📋 Pasted', imageFiles.length, 'image(s)');
+      await this.handleImageUpload(imageFiles);
     }
   }
 

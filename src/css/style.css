@@ -412,10 +412,12 @@ body {
 .chat-messages {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 32px 0;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    scroll-behavior: smooth;
 }
 
 .chat-welcome {
@@ -722,6 +724,10 @@ body {
         min-width: 80px;
         font-size: 11px;
     }
+    
+    .message {
+        width: 90%;
+    }
 }
 
 /* FPS Indicator */
@@ -764,15 +770,17 @@ body {
     display: flex;
     flex-direction: column;
     margin-bottom: 24px;
-    max-width: 70%;
+    width: 75%;
 }
 
 .message.user {
     align-self: flex-end;
+    margin-left: auto;
 }
 
 .message.assistant {
     align-self: flex-start;
+    margin-right: auto;
 }
 
 .message-content {
@@ -784,6 +792,54 @@ body {
     line-height: 1.5;
     white-space: pre-wrap;
     word-wrap: break-word;
+    position: relative;
+    user-select: text;
+    cursor: text;
+}
+
+.message-timestamp {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-family: var(--font-mono);
+}
+
+.message.user .message-timestamp {
+    text-align: right;
+}
+
+.message.assistant .message-timestamp {
+    text-align: left;
+}
+
+.copy-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--hover);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-sm);
+    padding: 4px 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    font-family: var(--font-mono);
+}
+
+.message:hover .copy-button {
+    opacity: 1;
+}
+
+.copy-button:hover {
+    background: var(--accent);
+    color: var(--accent-text);
+}
+
+.copy-button.copied {
+    background: #10b981;
+    color: white;
 }
 
 .message.user .message-content {
@@ -792,15 +848,7 @@ body {
     border-color: var(--accent);
 }
 
-.message.streaming .message-content::after {
-    content: '▋';
-    animation: blink 1s infinite;
-}
-
-@keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
-}
+/* Removed blinking cursor - no animation on streaming messages */
 
 .message-images {
     display: flex;
