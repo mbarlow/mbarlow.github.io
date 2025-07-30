@@ -57,6 +57,11 @@ class IndustrialPortfolio {
     // Initialize Three.js system
     threeRender.init();
     
+    // Add camera system BEFORE loading level (so it's ready when entities are created)
+    const cameraSystem = new CameraSystem();
+    this.world.addSystem(cameraSystem, 'camera');
+    cameraSystem.init(this.world);
+    
     // Add level loader
     const levelLoader = new LevelLoader();
     this.world.addSystem(levelLoader, 'levelLoader');
@@ -68,11 +73,6 @@ class IndustrialPortfolio {
     const agentSystem = new AgentSystem();
     this.world.addSystem(agentSystem, 'agent');
     await agentSystem.init();
-    
-    // Add FPS systems
-    const cameraSystem = new CameraSystem();
-    this.world.addSystem(cameraSystem, 'camera');
-    cameraSystem.init(this.world);
     
     const playerMovementSystem = new PlayerMovementSystem();
     this.world.addSystem(playerMovementSystem, 'playerMovement');
