@@ -1,5 +1,5 @@
 import { World } from './core/index.js';
-import { RenderSystem, InputSystem, ThreeRenderSystem, LevelLoader, AgentSystem, CameraSystem, PlayerMovementSystem, FPSControllerSystem } from './systems/index.js';
+import { RenderSystem, InputSystem, ThreeRenderSystem, LevelLoader, AgentSystem, CameraSystem, PlayerMovementSystem, FPSControllerSystem, PatrolSystem } from './systems/index.js';
 
 // Main Application Controller
 class IndustrialPortfolio {
@@ -79,6 +79,10 @@ class IndustrialPortfolio {
     
     const fpsControllerSystem = new FPSControllerSystem();
     this.world.addSystem(fpsControllerSystem, 'fpsController');
+    
+    // Add patrol system for bots
+    const patrolSystem = new PatrolSystem();
+    this.world.addSystem(patrolSystem, 'patrol');
 
     // Start the ECS world
     this.world.start();

@@ -6,3 +6,4 @@ export { AnimationComponent } from './AnimationComponent.js';
 export { CameraComponent } from './CameraComponent.js';
 export { MovementComponent } from './MovementComponent.js';
 export { PlayerControllerComponent } from './PlayerControllerComponent.js';
+export { PatrolComponent } from './PatrolComponent.js';
