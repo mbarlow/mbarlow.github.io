@@ -177,7 +177,7 @@ export class LevelLoader extends System {
     // Add player controller component
     const controller = new PlayerControllerComponent({
       isEnabled: true,
-      isFPSMode: true,
+      isFPSMode: false, // Start in 3rd person mode
       mouseSensitivity: 1.0,
     });
     player.addComponent(controller);

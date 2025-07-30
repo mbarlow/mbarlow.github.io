@@ -17,7 +17,7 @@ export class PlayerMovementSystem extends System {
       const controller = entity.getComponent(PlayerControllerComponent);
       
       if (!transform || !movement || !controller) continue;
-      if (!controller.isEnabled || !controller.isFPSMode) continue;
+      if (!controller.isEnabled) continue;
       
       // Update movement input
       movement.inputVector = controller.getMovementInput();
@@ -136,11 +136,33 @@ export class PlayerMovementSystem extends System {
   
   updateAttachedCamera(entity, transform, movement) {
     const camera = entity.getComponent(CameraComponent);
+    const controller = entity.getComponent(PlayerControllerComponent);
+    
     if (camera && camera.camera) {
-      // Camera follows player position with height offset
-      const eyeHeight = movement.currentHeight * 0.9; // 90% of character height
-      camera.camera.position.copy(transform.position);
-      camera.camera.position.y += eyeHeight - movement.currentHeight / 2;
+      // Check if we're in FPS mode - if so, use first person camera
+      if (controller && controller.isFPSMode && controller.hasPointerLock) {
+        // FPS mode: Camera at eye level
+        const eyeHeight = movement.currentHeight * 0.9;
+        camera.camera.position.copy(transform.position);
+        camera.camera.position.y += eyeHeight - movement.currentHeight / 2;
+      } else {
+        // Third person mode: Camera behind and above player
+        const cameraDistance = 8; // Distance behind player
+        const cameraHeight = 6;   // Height above player
+        
+        // Position camera behind and above the player
+        camera.camera.position.x = transform.position.x;
+        camera.camera.position.y = transform.position.y + cameraHeight;
+        camera.camera.position.z = transform.position.z + cameraDistance;
+        
+        // Make camera look at the player
+        const lookAtPosition = new THREE.Vector3(
+          transform.position.x,
+          transform.position.y + movement.currentHeight / 2, // Look at center of player
+          transform.position.z
+        );
+        camera.camera.lookAt(lookAtPosition);
+      }
     }
   }
 }
