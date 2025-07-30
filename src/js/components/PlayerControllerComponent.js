@@ -48,8 +48,9 @@ export class PlayerControllerComponent extends Component {
   }
   
   updateMouseMovement(deltaX, deltaY) {
-    this.mouseMovement.x = deltaX * this.mouseSensitivity;
-    this.mouseMovement.y = deltaY * this.mouseSensitivity * (this.invertY ? -1 : 1);
+    // Store raw mouse movement - sensitivity will be applied in FPSControllerSystem
+    this.mouseMovement.x = deltaX;
+    this.mouseMovement.y = deltaY * (this.invertY ? -1 : 1);
     this.lastMouseUpdate = performance.now();
   }
   

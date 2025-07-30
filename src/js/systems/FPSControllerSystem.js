@@ -123,9 +123,10 @@ export class FPSControllerSystem extends System {
     const camera = entity.getComponent(CameraComponent);
     if (!camera) return;
     
-    // Apply mouse movement to camera rotation
-    camera.yaw -= controller.mouseMovement.x;
-    camera.pitch -= controller.mouseMovement.y;
+    // Apply mouse movement to camera rotation with proper sensitivity scaling
+    const sensitivity = 0.002; // Reduced sensitivity for smoother control
+    camera.yaw -= controller.mouseMovement.x * sensitivity;
+    camera.pitch -= controller.mouseMovement.y * sensitivity;
     
     // Clamp pitch to prevent over-rotation
     camera.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.pitch));

@@ -141,10 +141,11 @@ export class PlayerMovementSystem extends System {
     if (camera && camera.camera) {
       // Check if we're in FPS mode - if so, use first person camera
       if (controller && controller.isFPSMode && controller.hasPointerLock) {
-        // FPS mode: Camera at eye level
+        // FPS mode: Camera at eye level - ONLY set position, let FPSControllerSystem handle rotation
         const eyeHeight = movement.currentHeight * 0.9;
         camera.camera.position.copy(transform.position);
         camera.camera.position.y += eyeHeight - movement.currentHeight / 2;
+        // DON'T call lookAt() in FPS mode - FPSControllerSystem handles rotation
       } else {
         // Third person mode: Camera behind and above player
         const cameraDistance = 8; // Distance behind player
@@ -155,7 +156,7 @@ export class PlayerMovementSystem extends System {
         camera.camera.position.y = transform.position.y + cameraHeight;
         camera.camera.position.z = transform.position.z + cameraDistance;
         
-        // Make camera look at the player
+        // Make camera look at the player (only in third person mode)
         const lookAtPosition = new THREE.Vector3(
           transform.position.x,
           transform.position.y + movement.currentHeight / 2, // Look at center of player
