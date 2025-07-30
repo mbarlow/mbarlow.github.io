@@ -1,5 +1,5 @@
 import { System } from '../core/System.js';
-import { PlayerControllerComponent, CameraComponent } from '../components/index.js';
+import { PlayerControllerComponent, CameraComponent, MeshComponent } from '../components/index.js';
 
 /**
  * FPSControllerSystem - Handles FPS controls, mouse look, and UI management
@@ -180,6 +180,12 @@ export class FPSControllerSystem extends System {
         console.log('🎮 Found player controller, enabling FPS mode');
         controller.enterFPSMode();
         controllersFound++;
+        
+        // Hide player mesh in FPS mode (so we don't see it from inside)
+        const mesh = entity.getComponent(MeshComponent);
+        if (mesh && mesh.mesh) {
+          mesh.mesh.visible = false;
+        }
       }
     }
     
@@ -217,6 +223,12 @@ export class FPSControllerSystem extends System {
       const controller = entity.getComponent(PlayerControllerComponent);
       if (controller) {
         controller.exitFPSMode();
+        
+        // Show player mesh again when exiting FPS mode
+        const mesh = entity.getComponent(MeshComponent);
+        if (mesh && mesh.mesh) {
+          mesh.mesh.visible = true;
+        }
       }
     }
   }

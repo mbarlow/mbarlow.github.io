@@ -168,6 +168,18 @@ export class LevelLoader extends System {
     });
     player.addComponent(camera);
     
+    // Add mesh component - white rectangular prism
+    const mesh = new MeshComponent({
+      type: 'box',
+      width: 0.5,  // 0.5 units wide
+      height: 2,   // 2 units tall (as requested)
+      depth: 0.5,  // 0.5 units deep
+      color: 0xffffff,  // White color
+      receiveShadow: true,
+      castShadow: true
+    });
+    player.addComponent(mesh);
+    
     // Tag the entity for easy reference
     player.tag = 'player';
     
