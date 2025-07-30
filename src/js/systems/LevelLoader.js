@@ -1,5 +1,5 @@
 import { System } from '../core/System.js';
-import { TransformComponent, MeshComponent, AnimationComponent, CameraComponent, MovementComponent, PlayerControllerComponent } from '../components/index.js';
+import { TransformComponent, MeshComponent, AnimationComponent, CameraComponent, MovementComponent, PlayerControllerComponent, PatrolComponent } from '../components/index.js';
 
 /**
  * LevelLoader - Loads level data from JSON or creates default environment
@@ -44,6 +44,9 @@ export class LevelLoader extends System {
     
     // Create player entity
     this.createPlayer(world);
+    
+    // Create a patrolling bot
+    this.createPatrolBot(world);
     
     console.log('✅ Default environment created');
   }
@@ -184,6 +187,46 @@ export class LevelLoader extends System {
     player.tag = 'player';
     
     return player;
+  }
+  
+  createPatrolBot(world) {
+    console.log('🤖 Creating patrol bot...');
+    
+    // Create bot entity
+    const bot = world.createEntity();
+    
+    // Add transform component (starting position)
+    const transform = new TransformComponent({
+      position: { x: 10, y: 1, z: 0 } // 10 units from origin
+    });
+    bot.addComponent(transform);
+    
+    // Add mesh component - red cube bot
+    const mesh = new MeshComponent({
+      type: 'box',
+      width: 1,
+      height: 1,
+      depth: 1,
+      color: 0xff0000,  // Red color
+      receiveShadow: true,
+      castShadow: true
+    });
+    bot.addComponent(mesh);
+    
+    // Add patrol component
+    const patrol = new PatrolComponent({
+      radius: 12,  // 12 units from origin
+      speed: 3,    // Units per second
+      angle: 0,    // Starting angle
+      centerPoint: { x: 0, y: 0, z: 0 }  // Patrol around origin
+    });
+    bot.addComponent(patrol);
+    
+    // Tag the entity
+    bot.tag = 'bot';
+    
+    console.log('✅ Patrol bot created');
+    return bot;
   }
   
   async createLevelFromData(world, levelData) {

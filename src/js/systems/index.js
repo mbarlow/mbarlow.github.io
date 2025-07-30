@@ -6,3 +6,4 @@ export { AgentSystem } from './AgentSystem.js';
 export { CameraSystem } from './CameraSystem.js';
 export { PlayerMovementSystem } from './PlayerMovementSystem.js';
 export { FPSControllerSystem } from './FPSControllerSystem.js';
+export { PatrolSystem } from './PatrolSystem.js';
