@@ -79,10 +79,10 @@ export class FPSControllerSystem extends System {
     // Don't process other keys if chat is visible
     if (this.chatVisible) return;
     
-    // Update all player controllers
+    // Update all player controllers (allow movement in both FPS and 3rd person modes)
     for (const entity of this.entities) {
       const controller = entity.getComponent(PlayerControllerComponent);
-      if (controller && controller.isFPSMode) {
+      if (controller) {
         controller.setKeyPressed(event.code, true);
       }
     }
@@ -92,10 +92,10 @@ export class FPSControllerSystem extends System {
     // Don't process if chat is visible (except toggle key)
     if (this.chatVisible && event.code !== 'Backquote') return;
     
-    // Update all player controllers
+    // Update all player controllers (allow movement in both FPS and 3rd person modes)
     for (const entity of this.entities) {
       const controller = entity.getComponent(PlayerControllerComponent);
-      if (controller && controller.isFPSMode) {
+      if (controller) {
         controller.setKeyPressed(event.code, false);
       }
     }
