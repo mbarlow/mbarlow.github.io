@@ -40,7 +40,7 @@ export class AgentSystem extends System {
 
     // Setup message handler
     this.setupMessageHandler();
-    
+
     // Update UI with current capabilities
     this.updateImageUploadUI();
 
@@ -103,7 +103,7 @@ export class AgentSystem extends System {
 
   checkModelCapabilities() {
     // Check if current model supports multimodal input
-    const multimodalModels = ["gemma2", "gemma3", "llava", "bakllava"];
+    const multimodalModels = ["gemma3", "llava", "bakllava"];
     this.supportsImages = multimodalModels.some((model) =>
       this.currentModel.toLowerCase().includes(model),
     );
