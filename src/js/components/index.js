@@ -7,3 +7,7 @@ export { CameraComponent } from './CameraComponent.js';
 export { MovementComponent } from './MovementComponent.js';
 export { PlayerControllerComponent } from './PlayerControllerComponent.js';
 export { PatrolComponent } from './PatrolComponent.js';
+export { Connection } from './Connection.js';
+export { Session } from './Session.js';
+export { ChatLog } from './ChatLog.js';
+export { BrainComponent } from './BrainComponent.js';

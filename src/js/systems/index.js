@@ -7,3 +7,5 @@ export { CameraSystem } from './CameraSystem.js';
 export { PlayerMovementSystem } from './PlayerMovementSystem.js';
 export { FPSControllerSystem } from './FPSControllerSystem.js';
 export { PatrolSystem } from './PatrolSystem.js';
+export { ConnectionSystem } from './ConnectionSystem.js';
+export { SessionSystem } from './SessionSystem.js';

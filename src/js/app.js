@@ -1,5 +1,6 @@
 import { World } from './core/index.js';
-import { RenderSystem, InputSystem, ThreeRenderSystem, LevelLoader, AgentSystem, CameraSystem, PlayerMovementSystem, FPSControllerSystem, PatrolSystem } from './systems/index.js';
+import { RenderSystem, InputSystem, ThreeRenderSystem, LevelLoader, AgentSystem, CameraSystem, PlayerMovementSystem, FPSControllerSystem, PatrolSystem, ConnectionSystem, SessionSystem } from './systems/index.js';
+import { Connection, Session, ChatLog, BrainComponent } from './components/index.js';
 
 // Main Application Controller
 class IndustrialPortfolio {
@@ -83,6 +84,17 @@ class IndustrialPortfolio {
     // Add patrol system for bots
     const patrolSystem = new PatrolSystem();
     this.world.addSystem(patrolSystem, 'patrol');
+    
+    // Add connection system
+    const connectionSystem = new ConnectionSystem(this.world, threeRender.scene);
+    this.world.addSystem(connectionSystem, 'connection');
+    
+    // Add session system
+    const sessionSystem = new SessionSystem(this.world);
+    this.world.addSystem(sessionSystem, 'session');
+    
+    // Initialize player-origin connection after level is loaded
+    this.initializeDefaultConnections();
 
     // Start the ECS world
     this.world.start();
@@ -197,6 +209,51 @@ class IndustrialPortfolio {
     console.log("✅ Sidebar initialized");
   }
 
+  initializeDefaultConnections() {
+    console.log("🔗 Initializing default connections...");
+    
+    // Find player and origin marker entities
+    const player = this.world.getEntitiesByTag('player')[0];
+    const originMarker = this.world.getEntitiesByTag('origin-marker')[0];
+    
+    if (player && originMarker) {
+      // Add brain components
+      const playerBrain = new BrainComponent({
+        model: 'human',
+        primaryFunction: 'user',
+        personality: {
+          openness: 0.8,
+          extraversion: 0.7
+        },
+        interests: ['exploration', 'chatting', 'learning']
+      });
+      player.addComponent(playerBrain);
+      
+      const originBrain = new BrainComponent({
+        model: 'gemma3',
+        primaryFunction: 'assistant',
+        personality: {
+          agreeableness: 0.9,
+          conscientiousness: 0.8
+        },
+        interests: ['helping', 'answering questions', 'guiding']
+      });
+      originMarker.addComponent(originBrain);
+      
+      // Ensure connection components exist
+      this.world.ensureComponent(player, Connection);
+      this.world.ensureComponent(originMarker, Connection);
+      
+      // Store references for easy access
+      this.playerEntity = player;
+      this.originEntity = originMarker;
+      
+      console.log("✅ Player and origin entities configured");
+    } else {
+      console.error("❌ Could not find player or origin marker entities");
+    }
+  }
+  
   initChatInterface() {
     console.log("💬 Initializing chat interface...");
 
@@ -228,6 +285,11 @@ class IndustrialPortfolio {
 
       // Initial state
       this.updateSendButton(chatInput, chatSend);
+      
+      // Handle focus event to activate session
+      chatInput.addEventListener("focus", () => {
+        this.activatePlayerOriginSession();
+      });
     }
     
     // Model selector
@@ -305,6 +367,35 @@ class IndustrialPortfolio {
     localStorage.setItem("portfolio-font", fontName);
 
     console.log(`✅ Font changed to: ${fontName}`);
+  }
+
+  activatePlayerOriginSession() {
+    const sessionSystem = this.world.getSystem('session');
+    if (!sessionSystem || !this.playerEntity || !this.originEntity) {
+      console.error("Cannot activate session: missing required entities or systems");
+      return null;
+    }
+    
+    // Check if there's already an active session
+    const existingSessions = sessionSystem.getSessionHistory(this.playerEntity);
+    const activeSession = existingSessions.find(s => s && s.state === 'active');
+    
+    if (activeSession) {
+      console.log("Using existing active session:", activeSession.id);
+      return activeSession;
+    }
+    
+    // Create new session
+    console.log("Creating new session between player and origin");
+    const newSession = sessionSystem.createSession(this.playerEntity, this.originEntity);
+    
+    if (newSession) {
+      console.log("✅ Session created:", newSession.id);
+      return newSession;
+    }
+    
+    console.error("Failed to create session");
+    return null;
   }
 
   showFontDropdown() {
@@ -396,6 +487,13 @@ class IndustrialPortfolio {
       return;
     }
     
+    // Ensure session is active
+    const session = this.activatePlayerOriginSession();
+    if (!session) {
+      this.addMessage("assistant", "Failed to establish connection with assistant.");
+      return;
+    }
+    
     // Get images if any
     const imagePreview = document.getElementById("image-preview");
     const images = [];
@@ -420,14 +518,40 @@ class IndustrialPortfolio {
       }
     }
     
-    // Send to agent system
+    // Send message through session system
+    const sessionSystem = this.world.getSystem('session');
     const agentSystem = this.world.getSystem('agent');
-    if (agentSystem) {
-      await agentSystem.sendMessage(message, images);
-    } else {
-      // Fallback if agent system not ready
+    
+    if (sessionSystem && this.playerEntity && this.originEntity) {
+      // Add user message to session
+      sessionSystem.sendMessage(session.id, this.playerEntity.id, message, 'user');
+      
+      // Display user message
       this.addMessage("user", message);
-      this.addMessage("assistant", "Agent system not initialized. Please check if Ollama is running.");
+      
+      // Get AI response if agent system is ready
+      if (agentSystem && agentSystem.isConnected) {
+        // Get response from AI
+        const response = await agentSystem.generateResponse(message, {
+          model: this.originEntity.getComponent(BrainComponent).model,
+          images: images
+        });
+        
+        // Add AI response to session
+        sessionSystem.sendMessage(session.id, this.originEntity.id, response, 'llm');
+        
+        // Display AI response
+        this.addMessage("assistant", response);
+      } else {
+        // Fallback response
+        const fallbackResponse = "Agent system not initialized. Please check if Ollama is running.";
+        sessionSystem.sendMessage(session.id, this.originEntity.id, fallbackResponse, 'system');
+        this.addMessage("assistant", fallbackResponse);
+      }
+    } else {
+      // Fallback if session system not ready
+      this.addMessage("user", message);
+      this.addMessage("assistant", "Session system not initialized.");
     }
   }
 

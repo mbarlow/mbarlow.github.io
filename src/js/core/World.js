@@ -105,6 +105,39 @@ export class World {
     }
   }
 
+  getEntity(entityId) {
+    return this.entities.get(entityId);
+  }
+  
+  getEntitiesByTag(tag) {
+    const entities = [];
+    for (const entity of this.entities.values()) {
+      if (entity.tag === tag) {
+        entities.push(entity);
+      }
+    }
+    return entities;
+  }
+  
+  getEntitiesWithComponent(ComponentClass) {
+    const entities = [];
+    for (const entity of this.entities.values()) {
+      if (entity.hasComponent(ComponentClass)) {
+        entities.push(entity);
+      }
+    }
+    return entities;
+  }
+  
+  ensureComponent(entity, ComponentClass) {
+    if (!entity.hasComponent(ComponentClass)) {
+      const component = new ComponentClass();
+      entity.addComponent(component);
+      return component;
+    }
+    return entity.getComponent(ComponentClass);
+  }
+
   clear() {
     this.running = false;
     this.entities.clear();

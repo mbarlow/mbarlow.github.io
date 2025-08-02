@@ -1,6 +1,6 @@
 # mbarlow.github.io
 
-An innovative interactive portfolio website combining a chat interface with AI integration and a 3D/FPS mode experience.
+A local first chat interface with ecs engine represented as a 3D (optional FPS) mode experience.
 
 ## Features
 

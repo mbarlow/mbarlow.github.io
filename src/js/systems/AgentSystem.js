@@ -118,6 +118,47 @@ export class AgentSystem extends System {
     // We'll hook into the sendMessage method
   }
 
+  async generateResponse(content, options = {}) {
+    const { model = this.currentModel, images = [] } = options;
+    
+    if (!this.isConnected) {
+      console.warn("Cannot generate response: not connected to Ollama");
+      return "I'm currently offline. Please ensure Ollama is running.";
+    }
+
+    try {
+      const messages = [
+        {
+          role: "user",
+          content: content,
+          images: images.length > 0 ? images : undefined
+        }
+      ];
+
+      const response = await fetch(`${this.ollamaUrl}/api/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          stream: false
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.message?.content || "No response generated.";
+    } catch (error) {
+      console.error("Failed to generate response:", error);
+      return "Failed to generate response. Please check the console for details.";
+    }
+  }
+
   async sendMessage(content, images = []) {
     if (!this.isConnected || this.isProcessing) {
       console.warn("Cannot send message: not connected or already processing");

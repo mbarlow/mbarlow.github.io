@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-This is a personal portfolio website with an innovative interactive design combining:
+This is a chat interface with ecs engine represented as a 3D (optional FPS) mode experience:
 - **Chat interface** with AI integration (Ollama)
 - **3D/FPS mode** using Three.js
 - **Pure vanilla JavaScript** with ES6 modules (no framework)
@@ -73,12 +73,12 @@ To view console logs and debug interactively:
    node -e "
    const WebSocket = require('ws');
    const ws = new WebSocket('ws://127.0.0.1:9222/devtools/page/[PAGE_ID]');
-   
+
    ws.on('open', function open() {
      ws.send(JSON.stringify({ id: 1, method: 'Runtime.enable' }));
      ws.send(JSON.stringify({ id: 2, method: 'Console.enable' }));
    });
-   
+
    ws.on('message', function message(data) {
      const msg = JSON.parse(data);
      if (msg.method === 'Console.messageAdded') {
@@ -89,7 +89,7 @@ To view console logs and debug interactively:
        console.log('[Console]', msg.params.type + ':', text);
      }
    });
-   
+
    setTimeout(() => { ws.close(); process.exit(0); }, 5000);
    "
    ```
