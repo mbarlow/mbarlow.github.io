@@ -1,0 +1,78 @@
+name: Update Version in README
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get latest tag and commit info
+      id: version_info
+      run: |
+        # Get the latest tag
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        
+        # Get current commit SHA (short)
+        GIT_SHA=$(git rev-parse --short HEAD)
+        
+        # If this is a tag push, use the tag name
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          LATEST_TAG=${GITHUB_REF#refs/tags/}
+        fi
+        
+        echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+        echo "git_sha=$GIT_SHA" >> $GITHUB_OUTPUT
+        echo "version_string=${LATEST_TAG}:${GIT_SHA}" >> $GITHUB_OUTPUT
+
+    - name: Update README.md version
+      run: |
+        # Update the version line in README.md
+        sed -i "s/\*\*Version:\*\* [^|]*/\*\*Version:\*\* ${{ steps.version_info.outputs.latest_tag }}/" README.md
+        sed -i "s/\*\*Build:\*\* \[GIT_TAG\]:\[GIT_SHA\]/\*\*Build:\*\* ${{ steps.version_info.outputs.version_string }}/" README.md
+        
+        # Verify the change
+        echo "Updated README.md:"
+        head -5 README.md
+
+    - name: Check for changes
+      id: check_changes
+      run: |
+        if git diff --quiet README.md; then
+          echo "changes=false" >> $GITHUB_OUTPUT
+          echo "No changes to commit"
+        else
+          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "Changes detected in README.md"
+        fi
+
+    - name: Commit and push changes
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add README.md
+        git commit -m "docs: update version to ${{ steps.version_info.outputs.latest_tag }} (${{ steps.version_info.outputs.git_sha }})"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Summary
+      run: |
+        echo "## Version Update Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Tag:** ${{ steps.version_info.outputs.latest_tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit:** ${{ steps.version_info.outputs.git_sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Full Version:** ${{ steps.version_info.outputs.version_string }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Changes:** ${{ steps.check_changes.outputs.changes }}" >> $GITHUB_STEP_SUMMARY
