@@ -30,9 +30,9 @@ Implementing an ECS-based connection and messaging system that allows entities t
 - [x] Add connection animation/pulsing for active chats
 
 ### 5. Data Persistence (Priority: Low)
-- [ ] Design session storage format
-- [ ] Implement session save/load functionality
-- [ ] Add chat history search by keywords
+- [x] Design session storage format (IndexedDB + localStorage fallback)
+- [x] Implement session save/load functionality (automatic + manual)
+- [x] Add chat history search by keywords and titles
 
 ## Architecture Design
 
@@ -187,8 +187,40 @@ The system is now production-ready for:
 3. **Session management** with automatic titles and keywords
 4. **Expandable architecture** for additional entities and connection types
 
-### 🔄 Next Steps (Optional Enhancements)
-- Data persistence for session storage
+### ⚡ NEW ENHANCEMENTS COMPLETED
+
+#### Data Persistence System
+- **Full IndexedDB integration** with localStorage fallback
+- **Automatic saving** every 30 seconds + manual save commands
+- **Session search** by title and keywords with `/search <query>`
+- **Session history** management with `/history`
+- **Export/Import** functionality with `/export`
+- **Structured storage** for sessions, chat logs, and brain data
+
+#### Performance Optimizations
+- **Connection LOD** (Level of Detail) - simpler geometry at distance
+- **Camera-distance based** segment calculation (8-60 segments)
+- **Optimized updates** - only when entities move significantly
+- **Memory management** with proper disposal of geometries/materials
+
+#### Advanced Visual Effects
+- **Particle flow animation** along active connections
+- **8 flowing particles** per active connection with speed variation
+- **Fade-in/fade-out** at connection endpoints
+- **State-based particle creation** (only for active connections)
+- **Smooth looping** particle animation
+
+#### Slash Commands
+- `/search <query>` - Search chat history by title/keywords
+- `/history` - Show recent session history
+- `/save` - Force save current session
+- `/export` - Export all session data as JSON
+- `/start` - Enter FPS mode (existing)
+
+### 🔄 Future Enhancements (Optional)
 - Multi-entity connections (group chats)
-- Advanced visual effects (particle trails, bandwidth visualization)
+- Voice chat integration
+- File/media sharing through connections
 - Entity discovery and auto-connection systems
+- Collaborative workspace sessions
+- Advanced analytics and metrics

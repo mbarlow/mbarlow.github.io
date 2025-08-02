@@ -49,6 +49,58 @@ export class ConnectionSystem extends System {
         return [entity1Id, entity2Id].sort().join('-');
     }
 
+    calculateLODSegments(distance, startPos, endPos) {
+        // Get camera position for distance calculation
+        const cameraSystem = this.world.getSystem('camera');
+        let cameraDistance = distance; // fallback
+        
+        if (cameraSystem && cameraSystem.camera) {
+            const cameraPos = cameraSystem.camera.position;
+            const connectionMidpoint = new THREE.Vector3()
+                .addVectors(startPos, endPos)
+                .multiplyScalar(0.5);
+            cameraDistance = cameraPos.distanceTo(connectionMidpoint);
+        }
+        
+        // LOD calculation based on distance from camera
+        let segments;
+        if (cameraDistance < 10) {
+            // High detail for close connections
+            segments = Math.max(24, Math.floor(distance * 3));
+        } else if (cameraDistance < 30) {
+            // Medium detail for medium distance
+            segments = Math.max(16, Math.floor(distance * 2));
+        } else {
+            // Low detail for far connections
+            segments = Math.max(8, Math.floor(distance * 1));
+        }
+        
+        return Math.min(segments, 60); // Cap maximum segments
+    }
+
+    calculateLODRadialSegments(distance, startPos, endPos) {
+        // Get camera position for distance calculation
+        const cameraSystem = this.world.getSystem('camera');
+        let cameraDistance = distance; // fallback
+        
+        if (cameraSystem && cameraSystem.camera) {
+            const cameraPos = cameraSystem.camera.position;
+            const connectionMidpoint = new THREE.Vector3()
+                .addVectors(startPos, endPos)
+                .multiplyScalar(0.5);
+            cameraDistance = cameraPos.distanceTo(connectionMidpoint);
+        }
+        
+        // Radial segments LOD
+        if (cameraDistance < 10) {
+            return 12; // High detail
+        } else if (cameraDistance < 30) {
+            return 8;  // Medium detail
+        } else {
+            return 6;  // Low detail
+        }
+    }
+
     createConnector(entity1, entity2, connectionData) {
         const key = this.createConnectorKey(entity1.id, entity2.id);
         
@@ -86,10 +138,11 @@ export class ConnectionSystem extends System {
             endPos.clone()
         );
         
-        // Generate tube geometry
-        const segments = Math.max(20, Math.floor(distance * 2));
+        // Generate tube geometry with LOD
+        const segments = this.calculateLODSegments(distance, startPos, endPos);
         const radius = 0.015;
-        const tubeGeometry = new THREE.TubeGeometry(curve, segments, radius, 8, false);
+        const radialSegments = this.calculateLODRadialSegments(distance, startPos, endPos);
+        const tubeGeometry = new THREE.TubeGeometry(curve, segments, radius, radialSegments, false);
         
         // Create mesh with appropriate material
         const material = this.materials[connectionData.state || 'inactive'];
@@ -106,7 +159,9 @@ export class ConnectionSystem extends System {
             entity2,
             state: connectionData.state || 'inactive',
             lastUpdatePos1: startPos.clone(),
-            lastUpdatePos2: endPos.clone()
+            lastUpdatePos2: endPos.clone(),
+            particles: null,
+            particleTime: 0
         };
         
         this.connectors.set(key, connectorData);
@@ -152,8 +207,10 @@ export class ConnectionSystem extends System {
         curve.v2.copy(control2);
         curve.v3.copy(endPos);
         
-        // Regenerate geometry
-        const newGeometry = new THREE.TubeGeometry(curve, segments, radius, 8, false);
+        // Regenerate geometry with LOD
+        const newSegments = this.calculateLODSegments(distance, startPos, endPos);
+        const newRadialSegments = this.calculateLODRadialSegments(distance, startPos, endPos);
+        const newGeometry = new THREE.TubeGeometry(curve, newSegments, radius, newRadialSegments, false);
         mesh.geometry.dispose();
         mesh.geometry = newGeometry;
     }
@@ -163,12 +220,22 @@ export class ConnectionSystem extends System {
         const connectorData = this.connectors.get(key);
         if (!connectorData) return;
         
+        const wasActive = connectorData.state === 'active';
         connectorData.state = state;
         connectorData.mesh.material = this.materials[state];
         
         // Initialize animation time for new active connections
         if (state === 'active' && !connectorData.animationTime) {
             connectorData.animationTime = 0;
+        }
+        
+        // Handle particle effects based on state
+        if (state === 'active' && !wasActive) {
+            // Create particles when becoming active
+            this.createParticles(connectorData);
+        } else if (state !== 'active' && wasActive) {
+            // Remove particles when becoming inactive
+            this.removeParticles(connectorData);
         }
     }
     
@@ -198,6 +265,79 @@ export class ConnectionSystem extends System {
         if (connectorData.mesh.material.emissive) {
             connectorData.mesh.material.emissive.setHex(emissivePulse);
         }
+        
+        // Update particle effects
+        this.updateParticles(connectorData, deltaTime);
+    }
+
+    createParticles(connectorData) {
+        const particleCount = 8;
+        const particles = [];
+        
+        for (let i = 0; i < particleCount; i++) {
+            const geometry = new THREE.SphereGeometry(0.005, 4, 4);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0x00ff88,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const particle = new THREE.Mesh(geometry, material);
+            this.scene.add(particle);
+            
+            particles.push({
+                mesh: particle,
+                progress: i / particleCount, // Distribute along curve
+                speed: 0.5 + Math.random() * 0.3 // Slight speed variation
+            });
+        }
+        
+        connectorData.particles = particles;
+    }
+
+    updateParticles(connectorData, deltaTime) {
+        if (!connectorData.particles) {
+            this.createParticles(connectorData);
+        }
+        
+        const particles = connectorData.particles;
+        if (!particles) return;
+        
+        // Animate particles along the curve
+        particles.forEach(particle => {
+            particle.progress += particle.speed * deltaTime;
+            
+            // Loop the particle when it reaches the end
+            if (particle.progress > 1) {
+                particle.progress = 0;
+            }
+            
+            // Get position along curve
+            const position = connectorData.curve.getPoint(particle.progress);
+            particle.mesh.position.copy(position);
+            
+            // Fade particles based on distance from endpoints
+            const fadeZone = 0.1; // 10% of curve length
+            let opacity = 0.8;
+            if (particle.progress < fadeZone) {
+                opacity *= particle.progress / fadeZone;
+            } else if (particle.progress > 1 - fadeZone) {
+                opacity *= (1 - particle.progress) / fadeZone;
+            }
+            
+            particle.mesh.material.opacity = opacity;
+        });
+    }
+
+    removeParticles(connectorData) {
+        if (connectorData.particles) {
+            connectorData.particles.forEach(particle => {
+                this.scene.remove(particle.mesh);
+                particle.mesh.geometry.dispose();
+                particle.mesh.material.dispose();
+            });
+            connectorData.particles = null;
+        }
     }
 
     removeConnector(entity1, entity2) {
@@ -205,8 +345,14 @@ export class ConnectionSystem extends System {
         const connectorData = this.connectors.get(key);
         if (!connectorData) return;
         
+        // Clean up particles
+        this.removeParticles(connectorData);
+        
+        // Clean up mesh
         this.scene.remove(connectorData.mesh);
         connectorData.mesh.geometry.dispose();
+        connectorData.mesh.material.dispose();
+        
         this.connectors.delete(key);
     }
 
@@ -285,8 +431,10 @@ export class ConnectionSystem extends System {
 
     cleanup() {
         for (const connectorData of this.connectors.values()) {
+            this.removeParticles(connectorData);
             this.scene.remove(connectorData.mesh);
             connectorData.mesh.geometry.dispose();
+            connectorData.mesh.material.dispose();
         }
         this.connectors.clear();
     }

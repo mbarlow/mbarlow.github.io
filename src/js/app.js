@@ -1,5 +1,5 @@
 import { World } from './core/index.js';
-import { RenderSystem, InputSystem, ThreeRenderSystem, LevelLoader, AgentSystem, CameraSystem, PlayerMovementSystem, FPSControllerSystem, PatrolSystem, ConnectionSystem, SessionSystem } from './systems/index.js';
+import { RenderSystem, InputSystem, ThreeRenderSystem, LevelLoader, AgentSystem, CameraSystem, PlayerMovementSystem, FPSControllerSystem, PatrolSystem, ConnectionSystem, SessionSystem, PersistenceSystem } from './systems/index.js';
 import { Connection, Session, ChatLog, BrainComponent } from './components/index.js';
 
 // Main Application Controller
@@ -92,6 +92,11 @@ class IndustrialPortfolio {
     // Add session system
     const sessionSystem = new SessionSystem(this.world);
     this.world.addSystem(sessionSystem, 'session');
+    
+    // Add persistence system
+    const persistenceSystem = new PersistenceSystem(this.world);
+    this.world.addSystem(persistenceSystem, 'persistence');
+    await persistenceSystem.init();
     
     // Initialize player-origin connection after level is loaded
     this.initializeDefaultConnections();
@@ -398,6 +403,122 @@ class IndustrialPortfolio {
     return null;
   }
 
+  async handleSearchCommand(query) {
+    const persistenceSystem = this.world.getSystem('persistence');
+    if (!persistenceSystem) {
+      this.addMessage("assistant", "Search system not available.");
+      return;
+    }
+    
+    try {
+      const results = await persistenceSystem.searchSessions(query);
+      
+      if (results.length === 0) {
+        this.addMessage("assistant", `No sessions found matching "${query}"`);
+        return;
+      }
+      
+      let response = `Found ${results.length} session(s) matching "${query}":\n\n`;
+      results.slice(0, 5).forEach((session, index) => {
+        const date = new Date(session.lastActivityAt).toLocaleDateString();
+        const title = session.title || 'Untitled Session';
+        response += `${index + 1}. ${title} (${date}) - ${session.messageCount} messages\n`;
+        if (session.keywords?.length > 0) {
+          response += `   Keywords: ${session.keywords.join(', ')}\n`;
+        }
+      });
+      
+      if (results.length > 5) {
+        response += `\n...and ${results.length - 5} more results.`;
+      }
+      
+      this.addMessage("assistant", response);
+    } catch (error) {
+      this.addMessage("assistant", "Search failed. Please try again.");
+      console.error("Search error:", error);
+    }
+  }
+
+  async handleHistoryCommand() {
+    const persistenceSystem = this.world.getSystem('persistence');
+    if (!persistenceSystem) {
+      this.addMessage("assistant", "History system not available.");
+      return;
+    }
+    
+    try {
+      const history = await persistenceSystem.getSessionHistory(10);
+      
+      if (history.length === 0) {
+        this.addMessage("assistant", "No session history found.");
+        return;
+      }
+      
+      let response = "Recent session history:\n\n";
+      history.forEach((session, index) => {
+        response += `${index + 1}. ${session.title} (${session.lastActivity})\n`;
+        response += `   ${session.messageCount} messages, ${session.participants} participants\n`;
+        if (session.keywords?.length > 0) {
+          response += `   Keywords: ${session.keywords.join(', ')}\n`;
+        }
+        response += '\n';
+      });
+      
+      this.addMessage("assistant", response);
+    } catch (error) {
+      this.addMessage("assistant", "Failed to load history. Please try again.");
+      console.error("History error:", error);
+    }
+  }
+
+  async handleSaveCommand() {
+    const persistenceSystem = this.world.getSystem('persistence');
+    if (!persistenceSystem) {
+      this.addMessage("assistant", "Save system not available.");
+      return;
+    }
+    
+    try {
+      await persistenceSystem.forceSave();
+      this.addMessage("assistant", "✅ Current session saved successfully!");
+    } catch (error) {
+      this.addMessage("assistant", "❌ Failed to save session. Please try again.");
+      console.error("Save error:", error);
+    }
+  }
+
+  async handleExportCommand() {
+    const persistenceSystem = this.world.getSystem('persistence');
+    if (!persistenceSystem) {
+      this.addMessage("assistant", "Export system not available.");
+      return;
+    }
+    
+    try {
+      const data = await persistenceSystem.exportData();
+      if (!data) {
+        this.addMessage("assistant", "No data to export.");
+        return;
+      }
+      
+      // Create download
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ecs-sessions-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      this.addMessage("assistant", `✅ Exported ${data.sessions.length} sessions and ${data.chatLogs.length} chat logs!`);
+    } catch (error) {
+      this.addMessage("assistant", "❌ Export failed. Please try again.");
+      console.error("Export error:", error);
+    }
+  }
+
   showFontDropdown() {
     const fontDropdown = document.getElementById("font-dropdown");
     if (fontDropdown) {
@@ -578,8 +699,17 @@ class IndustrialPortfolio {
       } else {
         this.addMessage("assistant", "Error: FPS system not available.");
       }
+    } else if (cmd.startsWith('/search ')) {
+      const query = command.substring(8);
+      await this.handleSearchCommand(query);
+    } else if (cmd === '/history') {
+      await this.handleHistoryCommand();
+    } else if (cmd === '/save') {
+      await this.handleSaveCommand();
+    } else if (cmd === '/export') {
+      await this.handleExportCommand();
     } else {
-      this.addMessage("assistant", `Unknown command: ${command}\n\nAvailable commands:\n/start - Enter FPS mode`);
+      this.addMessage("assistant", `Unknown command: ${command}\n\nAvailable commands:\n/start - Enter FPS mode\n/search <query> - Search chat history\n/history - Show recent sessions\n/save - Force save current session\n/export - Export all session data`);
     }
   }
 
