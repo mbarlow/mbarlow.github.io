@@ -185,36 +185,54 @@ export class SessionSystem extends System {
     }
 
     async generateSessionTitle(sessionId) {
+        console.log('🏷️ Generating session title for session:', sessionId);
+        
         const sessionData = this.sessions.get(sessionId);
-        if (!sessionData) return;
+        if (!sessionData) {
+            console.warn('Session data not found for title generation');
+            return;
+        }
 
         const { session, entities } = sessionData;
         const chatLogComp = entities[0].getComponent(ChatLog);
-        if (!chatLogComp) return;
+        if (!chatLogComp) {
+            console.warn('No chat log component found for title generation');
+            return;
+        }
 
         const messages = chatLogComp.getMessages(session.chatLogId, 10);
-        if (messages.length < 3) return; // Wait for more messages
+        if (messages.length < 3) {
+            console.log('Not enough messages for title generation:', messages.length);
+            return;
+        }
 
         // Get the agent system to generate title
         const agentSystem = this.world.getSystem('agent');
-        if (!agentSystem) return;
+        if (!agentSystem || !agentSystem.isConnected) {
+            console.warn('Agent system not available for title generation');
+            return;
+        }
 
         const context = messages.map(m => m.content).join('\n');
         const prompt = `Summarize this conversation in one short sentence (max 8 words):\n${context}`;
 
         try {
+            console.log('🤖 Requesting title generation from LLM...');
             const title = await agentSystem.generateResponse(prompt, {
-                model: 'llama3.2:latest',
+                model: 'gemma3', // Use the current model
                 temperature: 0.3
             });
 
             // Extract keywords
             const keywordPrompt = `List 3-5 keywords from this conversation (comma separated):\n${context}`;
             const keywordsResponse = await agentSystem.generateResponse(keywordPrompt, {
-                model: 'llama3.2:latest',
+                model: 'gemma3',
                 temperature: 0.3
             });
             const keywords = keywordsResponse.split(',').map(k => k.trim());
+
+            console.log('✅ Generated session title:', title.trim());
+            console.log('🏷️ Generated keywords:', keywords);
 
             // Update session
             entities.forEach(entity => {
@@ -224,7 +242,7 @@ export class SessionSystem extends System {
                 }
             });
         } catch (error) {
-            console.error('Failed to generate session title:', error);
+            console.error('❌ Failed to generate session title:', error);
         }
     }
 

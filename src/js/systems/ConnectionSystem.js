@@ -12,19 +12,34 @@ export class ConnectionSystem extends System {
         // Materials for different connection states
         this.materials = {
             inactive: new THREE.MeshBasicMaterial({
-                color: 0x666666,
+                color: 0x444444,
                 transparent: true,
-                opacity: 0.3
+                opacity: 0.2,
+                emissive: 0x111111
             }),
             active: new THREE.MeshBasicMaterial({
                 color: 0x00ff88,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.9,
+                emissive: 0x004422
             }),
             pending: new THREE.MeshBasicMaterial({
                 color: 0xffaa00,
                 transparent: true,
-                opacity: 0.6
+                opacity: 0.7,
+                emissive: 0x442200
+            }),
+            connecting: new THREE.MeshBasicMaterial({
+                color: 0x4488ff,
+                transparent: true,
+                opacity: 0.6,
+                emissive: 0x002244
+            }),
+            error: new THREE.MeshBasicMaterial({
+                color: 0xff4444,
+                transparent: true,
+                opacity: 0.5,
+                emissive: 0x441111
             })
         };
     }
@@ -89,7 +104,9 @@ export class ConnectionSystem extends System {
             radius,
             entity1,
             entity2,
-            state: connectionData.state || 'inactive'
+            state: connectionData.state || 'inactive',
+            lastUpdatePos1: startPos.clone(),
+            lastUpdatePos2: endPos.clone()
         };
         
         this.connectors.set(key, connectorData);
@@ -148,6 +165,39 @@ export class ConnectionSystem extends System {
         
         connectorData.state = state;
         connectorData.mesh.material = this.materials[state];
+        
+        // Initialize animation time for new active connections
+        if (state === 'active' && !connectorData.animationTime) {
+            connectorData.animationTime = 0;
+        }
+    }
+    
+    updateActivePulse(connectorData, deltaTime) {
+        if (!connectorData.animationTime) {
+            connectorData.animationTime = 0;
+        }
+        
+        connectorData.animationTime += deltaTime;
+        
+        // Create pulsing effect by modulating opacity
+        const pulseSpeed = 2.0; // 2 pulses per second
+        const baseOpacity = 0.9;
+        const pulseAmount = 0.3;
+        
+        const pulse = Math.sin(connectorData.animationTime * pulseSpeed * Math.PI * 2) * 0.5 + 0.5;
+        const newOpacity = baseOpacity + (pulse * pulseAmount);
+        
+        connectorData.mesh.material.opacity = newOpacity;
+        
+        // Optional: Add slight emissive pulsing
+        const baseBrightness = 0x004422;
+        const pulseBrightness = 0x006633;
+        const emissivePulse = Math.floor(baseBrightness + (pulse * (pulseBrightness - baseBrightness)));
+        
+        // Ensure the material has an emissive property and use setHex correctly
+        if (connectorData.mesh.material.emissive) {
+            connectorData.mesh.material.emissive.setHex(emissivePulse);
+        }
     }
 
     removeConnector(entity1, entity2) {
@@ -165,7 +215,30 @@ export class ConnectionSystem extends System {
         
         // Update all existing connectors
         for (const [key, connectorData] of this.connectors) {
-            this.updateConnector(connectorData.entity1, connectorData.entity2);
+            // Check if entities have moved
+            const transform1 = connectorData.entity1.getComponent(TransformComponent);
+            const transform2 = connectorData.entity2.getComponent(TransformComponent);
+            
+            if (transform1 && transform2) {
+                const currentPos1 = new THREE.Vector3().copy(transform1.position);
+                const currentPos2 = new THREE.Vector3().copy(transform2.position);
+                
+                // Only update if positions have changed significantly (optimization)
+                const threshold = 0.01; // 1cm movement threshold
+                const moved1 = connectorData.lastUpdatePos1.distanceTo(currentPos1) > threshold;
+                const moved2 = connectorData.lastUpdatePos2.distanceTo(currentPos2) > threshold;
+                
+                if (moved1 || moved2) {
+                    this.updateConnector(connectorData.entity1, connectorData.entity2);
+                    connectorData.lastUpdatePos1.copy(currentPos1);
+                    connectorData.lastUpdatePos2.copy(currentPos2);
+                }
+            }
+            
+            // Add pulsing animation for active connections
+            if (connectorData.state === 'active') {
+                this.updateActivePulse(connectorData, deltaTime);
+            }
         }
         
         // Check for new connections or state changes
