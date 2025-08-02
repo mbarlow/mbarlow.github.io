@@ -1,6 +1,6 @@
 # mbarlow.github.io
 
-**Version:** v0.0.1 | **Build:** [GIT_TAG]:[GIT_SHA]
+**Version:** v0.0.1| **Build:** v0.0.1:40b1098
 
 A local-first chat interface with ECS engine represented as a 3D (optional FPS) mode experience featuring intelligent AI entities, visual connections, and persistent session management.
 
