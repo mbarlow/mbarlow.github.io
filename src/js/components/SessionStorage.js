@@ -32,7 +32,7 @@ export class SessionStorage extends Component {
                 // Chat logs object store
                 if (!db.objectStoreNames.contains('chatLogs')) {
                     const chatStore = db.createObjectStore('chatLogs', { keyPath: 'id' });
-                    sessionStore.createIndex('sessionId', 'sessionId', { unique: false });
+                    chatStore.createIndex('sessionId', 'sessionId', { unique: false });
                 }
                 
                 // Entity brains object store
