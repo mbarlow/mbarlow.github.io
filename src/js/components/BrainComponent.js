@@ -41,6 +41,19 @@ export class BrainComponent extends Component {
         this.responseStyle = config.responseStyle || 'balanced';
         this.verbosity = config.verbosity || 0.5;
         this.creativity = config.creativity || 0.5;
+        
+        // System prompt configuration
+        this.systemPrompt = config.systemPrompt || '';
+        this.promptTemplate = config.promptTemplate || 'default';
+        this.contextSettings = {
+            includeHistory: config.contextSettings?.includeHistory || true,
+            historyLimit: config.contextSettings?.historyLimit || 5,
+            includePersonality: config.contextSettings?.includePersonality || true,
+            includeSystemInfo: config.contextSettings?.includeSystemInfo || true,
+            includeCommands: config.contextSettings?.includeCommands || true,
+            ...config.contextSettings
+        };
+        this.commandAccess = config.commandAccess || ['search', 'history', 'who', 'context'];
     }
 
     addSessionToHistory(sessionId) {
@@ -122,7 +135,28 @@ export class BrainComponent extends Component {
             recentMemories: this.getRecentMemories(),
             responseStyle: this.responseStyle,
             verbosity: this.verbosity,
-            creativity: this.creativity
+            creativity: this.creativity,
+            systemPrompt: this.systemPrompt,
+            contextSettings: this.contextSettings,
+            commandAccess: this.commandAccess
         };
+    }
+
+    updateSystemPrompt(newPrompt) {
+        this.systemPrompt = newPrompt;
+    }
+
+    hasCommandAccess(command) {
+        return this.commandAccess.includes(command);
+    }
+
+    addCommandAccess(command) {
+        if (!this.commandAccess.includes(command)) {
+            this.commandAccess.push(command);
+        }
+    }
+
+    removeCommandAccess(command) {
+        this.commandAccess = this.commandAccess.filter(cmd => cmd !== command);
     }
 }

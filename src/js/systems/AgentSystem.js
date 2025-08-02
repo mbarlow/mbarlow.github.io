@@ -25,6 +25,9 @@ export class AgentSystem extends System {
     // Multimodal support
     this.supportsImages = true;
     this.imageQueue = [];
+
+    // World reference (will be set when added to world)
+    this.world = null;
   }
 
   async init() {
@@ -119,7 +122,7 @@ export class AgentSystem extends System {
   }
 
   async generateResponse(content, options = {}) {
-    const { model = this.currentModel, images = [] } = options;
+    const { model = this.currentModel, images = [], entity = null, context = {} } = options;
     
     if (!this.isConnected) {
       console.warn("Cannot generate response: not connected to Ollama");
@@ -127,13 +130,25 @@ export class AgentSystem extends System {
     }
 
     try {
-      const messages = [
-        {
-          role: "user",
-          content: content,
-          images: images.length > 0 ? images : undefined
+      const messages = [];
+      
+      // Add system prompt if entity has one
+      if (entity) {
+        const systemPrompt = this.buildSystemPrompt(entity, context);
+        if (systemPrompt) {
+          messages.push({
+            role: "system",
+            content: systemPrompt
+          });
         }
-      ];
+      }
+      
+      // Add user message
+      messages.push({
+        role: "user",
+        content: content,
+        images: images.length > 0 ? images : undefined
+      });
 
       const response = await fetch(`${this.ollamaUrl}/api/chat`, {
         method: "POST",
@@ -157,6 +172,52 @@ export class AgentSystem extends System {
       console.error("Failed to generate response:", error);
       return "Failed to generate response. Please check the console for details.";
     }
+  }
+
+  buildSystemPrompt(entity, context = {}) {
+    const brain = entity.getComponent('BrainComponent');
+    if (!brain || !brain.systemPrompt) return null;
+
+    // Use the SystemPromptBuilder if available
+    if (this.promptBuilder) {
+      return this.promptBuilder.buildPrompt(entity, context);
+    }
+
+    // Fallback to basic system prompt
+    return brain.systemPrompt;
+  }
+
+  setPromptBuilder(promptBuilder) {
+    this.promptBuilder = promptBuilder;
+  }
+
+  async generateResponseWithContext(content, entity, context = {}) {
+    const brain = entity.getComponent('BrainComponent');
+    if (!brain) {
+      return this.generateResponse(content);
+    }
+
+    // Add conversation context if enabled
+    if (brain.contextSettings.includeHistory) {
+      const sessionSystem = this.world.getSystem('session');
+      if (sessionSystem) {
+        // Get recent conversation context
+        // This would be implemented to include recent messages
+        context.recentHistory = this.getRecentConversationContext(entity, brain.contextSettings.historyLimit);
+      }
+    }
+
+    return this.generateResponse(content, {
+      model: brain.model !== 'human' ? brain.model : this.currentModel,
+      entity: entity,
+      context: context
+    });
+  }
+
+  getRecentConversationContext(entity, limit = 5) {
+    // This would get recent messages from the current session
+    // For now, return empty array
+    return [];
   }
 
   async sendMessage(content, images = []) {
