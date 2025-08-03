@@ -21,13 +21,13 @@ Incremental refactoring of 2,287-line app.js into modular UI components.
 - [x] Create `/src/js/ui/utils/` for helpers
 - [x] Add debug utility for object dumps
 
-### Task 1.2: Implement Templating System ⏳
-- [ ] Create `Template.js` - Jinja2-like templating engine
-- [ ] Support variable interpolation: `{{ variable }}`
-- [ ] Support conditionals: `{% if condition %} ... {% endif %}`
-- [ ] Support loops: `{% for item in items %} ... {% endfor %}`
-- [ ] Create template loader/cache system
-- [ ] Add debug mode for template rendering
+### Task 1.2: Implement Templating System ✅
+- [x] Create `Template.js` - Jinja2-like templating engine
+- [x] Support variable interpolation: `{{ variable }}`
+- [x] Support conditionals: `{% if condition %} ... {% endif %}`
+- [x] Support loops: `{% for item in items %} ... {% endfor %}`
+- [x] Create template loader/cache system
+- [x] Add debug mode for template rendering
 
 ### Task 1.3: Create UI Base Classes ⏳
 - [ ] `UIComponent.js` - Base class for all UI components
