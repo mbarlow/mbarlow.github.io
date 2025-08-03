@@ -117,6 +117,37 @@ export class SessionStorage extends Component {
         return store.put(brainData);
     }
 
+    async updateSessionTitle(sessionId, newTitle) {
+        if (!this.db) await this.initIndexedDB();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['sessions'], 'readwrite');
+            const store = transaction.objectStore('sessions');
+            
+            // First get the existing session
+            const getRequest = store.get(sessionId);
+            
+            getRequest.onsuccess = () => {
+                const sessionData = getRequest.result;
+                if (sessionData) {
+                    // Update the title
+                    sessionData.title = newTitle;
+                    sessionData.lastActivityAt = Date.now();
+                    
+                    // Save the updated session
+                    const putRequest = store.put(sessionData);
+                    
+                    putRequest.onsuccess = () => resolve(sessionData);
+                    putRequest.onerror = () => reject(putRequest.error);
+                } else {
+                    reject(new Error('Session not found'));
+                }
+            };
+            
+            getRequest.onerror = () => reject(getRequest.error);
+        });
+    }
+
     async loadSession(sessionId) {
         if (!this.db) await this.initIndexedDB();
         

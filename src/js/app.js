@@ -431,12 +431,108 @@ class IndustrialPortfolio {
       });
     }
 
+    this.initSessionModals();
+
     // Load sessions after a short delay to ensure systems are ready
     setTimeout(() => {
       this.loadSessionsList();
     }, 1000);
     
     console.log("✅ Sessions list initialized");
+  }
+
+  initSessionModals() {
+    // Context menu event listeners
+    const renameSessionBtn = document.getElementById('rename-session');
+    const deleteSessionBtn = document.getElementById('delete-session');
+    
+    if (renameSessionBtn) {
+      renameSessionBtn.addEventListener('click', () => {
+        this.hideContextMenu();
+        this.showRenameModal();
+      });
+    }
+    
+    if (deleteSessionBtn) {
+      deleteSessionBtn.addEventListener('click', () => {
+        this.hideContextMenu();
+        this.showDeleteModal();
+      });
+    }
+
+    // Rename modal event listeners
+    const renameModalOverlay = document.getElementById('rename-modal-overlay');
+    const renameModalClose = document.getElementById('rename-modal-close');
+    const renameCancel = document.getElementById('rename-cancel');
+    const renameSave = document.getElementById('rename-save');
+    
+    if (renameModalOverlay) {
+      renameModalOverlay.addEventListener('click', (e) => {
+        if (e.target === renameModalOverlay) {
+          this.hideRenameModal();
+        }
+      });
+    }
+    
+    if (renameModalClose) {
+      renameModalClose.addEventListener('click', () => {
+        this.hideRenameModal();
+      });
+    }
+    
+    if (renameCancel) {
+      renameCancel.addEventListener('click', () => {
+        this.hideRenameModal();
+      });
+    }
+    
+    if (renameSave) {
+      renameSave.addEventListener('click', () => {
+        this.handleRenameSession();
+      });
+    }
+
+    // Delete modal event listeners
+    const deleteModalOverlay = document.getElementById('delete-modal-overlay');
+    const deleteModalClose = document.getElementById('delete-modal-close');
+    const deleteCancel = document.getElementById('delete-cancel');
+    const deleteConfirm = document.getElementById('delete-confirm');
+    
+    if (deleteModalOverlay) {
+      deleteModalOverlay.addEventListener('click', (e) => {
+        if (e.target === deleteModalOverlay) {
+          this.hideDeleteModal();
+        }
+      });
+    }
+    
+    if (deleteModalClose) {
+      deleteModalClose.addEventListener('click', () => {
+        this.hideDeleteModal();
+      });
+    }
+    
+    if (deleteCancel) {
+      deleteCancel.addEventListener('click', () => {
+        this.hideDeleteModal();
+      });
+    }
+    
+    if (deleteConfirm) {
+      deleteConfirm.addEventListener('click', () => {
+        this.handleDeleteSession();
+      });
+    }
+
+    // Handle Enter key in rename input
+    const sessionTitleInput = document.getElementById('session-title-input');
+    if (sessionTitleInput) {
+      sessionTitleInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          this.handleRenameSession();
+        }
+      });
+    }
   }
 
   async loadSessionsList() {
@@ -636,9 +732,164 @@ class IndustrialPortfolio {
   }
 
   showSessionMenu(session, menuBtn) {
-    // TODO: Implement session context menu
-    console.log("Show menu for session:", session.id);
-    // This will be implemented in the next task (rename/delete controls)
+    const contextMenu = document.getElementById('session-context-menu');
+    if (!contextMenu) return;
+
+    // Store current session for modal actions
+    this.currentContextSession = session;
+
+    // Position the menu near the button
+    const rect = menuBtn.getBoundingClientRect();
+    contextMenu.style.left = `${rect.right + 5}px`;
+    contextMenu.style.top = `${rect.top}px`;
+    
+    // Show the menu
+    contextMenu.classList.add('show');
+
+    // Hide menu when clicking outside
+    const hideMenu = (e) => {
+      if (!contextMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+        contextMenu.classList.remove('show');
+        document.removeEventListener('click', hideMenu);
+      }
+    };
+    
+    setTimeout(() => {
+      document.addEventListener('click', hideMenu);
+    }, 0);
+  }
+
+  hideContextMenu() {
+    const contextMenu = document.getElementById('session-context-menu');
+    if (contextMenu) {
+      contextMenu.classList.remove('show');
+    }
+  }
+
+  showRenameModal() {
+    if (!this.currentContextSession) return;
+    
+    const modal = document.getElementById('rename-modal-overlay');
+    const input = document.getElementById('session-title-input');
+    
+    if (modal && input) {
+      // Pre-fill with current title
+      input.value = this.currentContextSession.title || 'Untitled Session';
+      modal.style.display = 'flex';
+      
+      // Focus and select the input text
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 100);
+    }
+  }
+
+  hideRenameModal() {
+    const modal = document.getElementById('rename-modal-overlay');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+
+  showDeleteModal() {
+    if (!this.currentContextSession) return;
+    
+    const modal = document.getElementById('delete-modal-overlay');
+    const titleElement = document.getElementById('delete-session-title');
+    const metaElement = document.getElementById('delete-session-meta');
+    
+    if (modal && titleElement && metaElement) {
+      titleElement.textContent = this.currentContextSession.title || 'Untitled Session';
+      
+      // Calculate participants and message count
+      const participantCount = this.currentContextSession.participants ? this.currentContextSession.participants.size : 0;
+      const messageCount = this.currentContextSession.messageCount || 0;
+      metaElement.textContent = `${messageCount} messages, ${participantCount} participants`;
+      
+      modal.style.display = 'flex';
+    }
+  }
+
+  hideDeleteModal() {
+    const modal = document.getElementById('delete-modal-overlay');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+
+  async handleRenameSession() {
+    if (!this.currentContextSession) return;
+    
+    const input = document.getElementById('session-title-input');
+    const newTitle = input?.value?.trim();
+    
+    if (!newTitle || newTitle === this.currentContextSession.title) {
+      this.hideRenameModal();
+      return;
+    }
+
+    try {
+      const persistenceSystem = this.world.getSystem('persistence');
+      if (!persistenceSystem) {
+        console.error('Persistence system not available');
+        return;
+      }
+
+      // Update the session title in storage
+      await persistenceSystem.storage.updateSessionTitle(this.currentContextSession.id, newTitle);
+      
+      // Update local reference
+      this.currentContextSession.title = newTitle;
+      
+      // Refresh the sessions list
+      this.loadSessionsList();
+      
+      // Show success message
+      this.addMessage('system', `📝 Session renamed to "${newTitle}"`);
+      
+      this.hideRenameModal();
+    } catch (error) {
+      console.error('Failed to rename session:', error);
+      this.addMessage('system', '❌ Failed to rename session');
+    }
+  }
+
+  async handleDeleteSession() {
+    if (!this.currentContextSession) return;
+    
+    try {
+      const persistenceSystem = this.world.getSystem('persistence');
+      if (!persistenceSystem) {
+        console.error('Persistence system not available');
+        return;
+      }
+
+      const sessionId = this.currentContextSession.id;
+      
+      // Delete the session from storage
+      await persistenceSystem.storage.deleteSession(sessionId);
+      
+      // If this was the active session, we need to handle that
+      const sessionSystem = this.world.getSystem('session');
+      if (sessionSystem) {
+        // Deactivate the session if it was active
+        sessionSystem.deactivateSession(sessionId);
+      }
+      
+      // Refresh the sessions list
+      this.loadSessionsList();
+      
+      // Show success message
+      const sessionTitle = this.currentContextSession.title || 'Untitled Session';
+      this.addMessage('system', `🗑️ Deleted session "${sessionTitle}"`);
+      
+      this.hideDeleteModal();
+      this.currentContextSession = null;
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+      this.addMessage('system', '❌ Failed to delete session');
+    }
   }
 
   getTimeAgo(timestamp) {
