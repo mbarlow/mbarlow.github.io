@@ -11,3 +11,4 @@ export { ConnectionSystem } from './ConnectionSystem.js';
 export { SessionSystem } from './SessionSystem.js';
 export { PersistenceSystem } from './PersistenceSystem.js';
 export { IndicatorRenderSystem } from './IndicatorRenderSystem.js';
+export { VoxelIndicatorRenderSystem } from './VoxelIndicatorRenderSystem.js';
