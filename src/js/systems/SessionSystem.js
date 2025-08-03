@@ -3,7 +3,7 @@ import { Connection } from '../components/Connection.js';
 import { Session } from '../components/Session.js';
 import { ChatLog } from '../components/ChatLog.js';
 import { BrainComponent } from '../components/BrainComponent.js';
-import { IndicatorComponent } from '../components/IndicatorComponent.js';
+import { VoxelIndicatorComponent } from '../components/VoxelIndicatorComponent.js';
 
 export class SessionSystem extends System {
     constructor(world) {
@@ -171,7 +171,7 @@ export class SessionSystem extends System {
         // Trigger notification indicators for receiving entities
         entities.forEach(entity => {
             if (entity.id !== senderId) {
-                const indicator = entity.getComponent(IndicatorComponent);
+                const indicator = entity.getComponent(VoxelIndicatorComponent);
                 if (indicator) {
                     // Show notification animation
                     indicator.setState('notification');
@@ -204,8 +204,6 @@ export class SessionSystem extends System {
     }
 
     async generateSessionTitle(sessionId) {
-        console.log('🏷️ Generating session title for session:', sessionId);
-        
         const sessionData = this.sessions.get(sessionId);
         if (!sessionData) {
             console.warn('Session data not found for title generation');
@@ -213,6 +211,14 @@ export class SessionSystem extends System {
         }
 
         const { session, entities } = sessionData;
+        
+        // Check if we've already attempted or are attempting title generation
+        if (session.titleGenerationAttempted || session.isGeneratingTitle) {
+            return;
+        }
+        
+        console.log('🏷️ Generating session title for session:', sessionId);
+        session.isGeneratingTitle = true;
         const chatLogComp = entities[0].getComponent(ChatLog);
         if (!chatLogComp) {
             console.warn('No chat log component found for title generation');
@@ -222,8 +228,13 @@ export class SessionSystem extends System {
         const messages = chatLogComp.getMessages(session.chatLogId, 10);
         if (messages.length < 3) {
             console.log('Not enough messages for title generation:', messages.length);
+            session.isGeneratingTitle = false;
+            // Don't mark as attempted yet - we might have enough messages later
             return;
         }
+        
+        // Mark as attempted since we have enough messages
+        session.titleGenerationAttempted = true;
 
         // Get the agent system to generate title
         const agentSystem = this.world.getSystem('agent');
@@ -262,6 +273,8 @@ export class SessionSystem extends System {
             });
         } catch (error) {
             console.error('❌ Failed to generate session title:', error);
+        } finally {
+            session.isGeneratingTitle = false;
         }
     }
 
@@ -287,11 +300,18 @@ export class SessionSystem extends System {
     }
 
     update(deltaTime) {
-        // Check for sessions that need title generation
-        for (const [sessionId, sessionData] of this.sessions) {
-            const { session } = sessionData;
-            if (!session.title && session.messageCount >= 3) {
-                this.generateSessionTitle(sessionId);
+        // Check for sessions that need title generation (throttled)
+        this.titleCheckTimer = (this.titleCheckTimer || 0) + deltaTime;
+        
+        // Only check every 5 seconds
+        if (this.titleCheckTimer >= 5000) {
+            this.titleCheckTimer = 0;
+            
+            for (const [sessionId, sessionData] of this.sessions) {
+                const { session } = sessionData;
+                if (!session.title && session.messageCount >= 3 && !session.titleGenerationAttempted && !session.isGeneratingTitle) {
+                    this.generateSessionTitle(sessionId);
+                }
             }
         }
 

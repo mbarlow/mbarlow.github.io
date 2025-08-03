@@ -1,5 +1,5 @@
 import { System } from "../core/System.js";
-import { IndicatorComponent } from "../components/IndicatorComponent.js";
+import { VoxelIndicatorComponent } from "../components/VoxelIndicatorComponent.js";
 
 /**
  * AgentSystem - Handles communication with local Ollama instance
@@ -199,7 +199,7 @@ export class AgentSystem extends System {
     }
 
     // Update indicator to show thinking state
-    const indicator = entity.getComponent(IndicatorComponent);
+    const indicator = entity.getComponent(VoxelIndicatorComponent);
     if (indicator) {
       indicator.setState('thinking');
     }

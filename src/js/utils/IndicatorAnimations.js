@@ -420,9 +420,8 @@ export class IndicatorAnimationManager {
     
     startAnimation(animation) {
         this.currentAnimation = animation;
-        animation.start();
         
-        // Set up frame callback to update indicator
+        // Set up frame callback to update indicator BEFORE starting
         animation.onFrame = (frameIndex, frameData) => {
             if (frameData) {
                 this.indicator.setPattern(frameData);
@@ -435,6 +434,9 @@ export class IndicatorAnimationManager {
             if (originalOnComplete) originalOnComplete();
             this.processQueue();
         };
+        
+        // Start the animation after callbacks are set
+        animation.start();
     }
     
     processQueue() {

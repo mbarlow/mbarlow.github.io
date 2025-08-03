@@ -12,7 +12,7 @@ import {
   ConnectionSystem,
   SessionSystem,
   PersistenceSystem,
-  IndicatorRenderSystem,
+  VoxelIndicatorRenderSystem,
 } from "./systems/index.js";
 import {
   Connection,
@@ -20,6 +20,8 @@ import {
   ChatLog,
   BrainComponent,
   IndicatorComponent,
+  VoxelIndicatorComponent,
+  TransformComponent,
 } from "./components/index.js";
 import { SystemPromptBuilder } from "./utils/index.js";
 
@@ -127,12 +129,12 @@ class IndustrialPortfolio {
     this.world.addSystem(persistenceSystem, "persistence");
     await persistenceSystem.init();
 
-    // Add indicator render system
-    const indicatorRenderSystem = new IndicatorRenderSystem(
+    // Add 3D voxel indicator render system
+    const voxelIndicatorRenderSystem = new VoxelIndicatorRenderSystem(
       threeRender.scene,
-      cameraSystem.camera
+      cameraSystem.getActiveCamera()?.camera // Get the Three.js camera from active CameraComponent
     );
-    this.world.addSystem(indicatorRenderSystem, "indicatorRender");
+    this.world.addSystem(voxelIndicatorRenderSystem, "voxelIndicatorRender");
 
     // Initialize player-origin connection after level is loaded
     this.initializeDefaultConnections();
@@ -318,18 +320,20 @@ class IndustrialPortfolio {
       this.world.ensureComponent(player, Connection);
       this.world.ensureComponent(originMarker, Connection);
 
-      // Add indicator components
-      const playerIndicator = new IndicatorComponent({
-        position: { x: 0, y: 1.5, z: 0 }, // Above player
+      // Add 3D voxel indicator components (replacing 2D indicators)
+      const playerIndicator = new VoxelIndicatorComponent({
+        position: { x: 0, y: 1.2, z: 0 }, // Above player, closer due to smaller size
         brightness: 0.8,
-        state: 'idle'
+        state: 'idle',
+        gridSize: { width: 8, height: 8, depth: 1 } // 8x8 grid as requested
       });
       player.addComponent(playerIndicator);
 
-      const originIndicator = new IndicatorComponent({
-        position: { x: 0, y: 1.8, z: 0 }, // Above origin marker
+      const originIndicator = new VoxelIndicatorComponent({
+        position: { x: 0, y: 1.3, z: 0 }, // Above origin marker
         brightness: 1.0,
-        state: 'idle'
+        state: 'idle',
+        gridSize: { width: 8, height: 8, depth: 1 }
       });
       originMarker.addComponent(originIndicator);
 
@@ -348,50 +352,13 @@ class IndustrialPortfolio {
   }
 
   setPlayerIndicatorPattern(indicator) {
-    // Simple smiley face for player
-    indicator.clear();
-    
-    // Face outline (circle)
-    indicator.drawCircle(8, 8, 6, 100, 150, 255, false);
-    
-    // Eyes
-    indicator.setPixel(6, 10, 255, 255, 255);
-    indicator.setPixel(10, 10, 255, 255, 255);
-    
-    // Smile
-    indicator.setPixel(6, 6, 255, 255, 255);
-    indicator.setPixel(7, 5, 255, 255, 255);
-    indicator.setPixel(8, 5, 255, 255, 255);
-    indicator.setPixel(9, 5, 255, 255, 255);
-    indicator.setPixel(10, 6, 255, 255, 255);
+    // Create a simple smiley pattern for voxel indicator
+    indicator.createPattern('smiley');
   }
 
   setOriginIndicatorPattern(indicator) {
-    // AI-themed pattern for origin marker
-    indicator.clear();
-    
-    // Central core
-    indicator.fillRect(7, 7, 2, 2, 0, 255, 100);
-    
-    // Surrounding data points
-    const points = [
-      [3, 3], [12, 3], [3, 12], [12, 12],
-      [8, 2], [2, 8], [13, 8], [8, 13]
-    ];
-    
-    points.forEach(([x, y]) => {
-      indicator.setPixel(x, y, 0, 200, 255);
-    });
-    
-    // Connecting lines (simplified)
-    indicator.setPixel(5, 5, 0, 150, 200);
-    indicator.setPixel(6, 6, 0, 150, 200);
-    indicator.setPixel(9, 6, 0, 150, 200);
-    indicator.setPixel(10, 5, 0, 150, 200);
-    indicator.setPixel(10, 10, 0, 150, 200);
-    indicator.setPixel(9, 9, 0, 150, 200);
-    indicator.setPixel(6, 9, 0, 150, 200);
-    indicator.setPixel(5, 10, 0, 150, 200);
+    // Create AI-themed pattern for origin marker
+    indicator.createPattern('idle');
   }
 
   initChatInterface() {
@@ -1158,6 +1125,110 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log(
     "  - Type 'window.industrialPortfolio.getInputSystem().debugKeyStates()' to see key states",
   );
+  
+  // Add test function for debugging animations
+  window.testIndicatorAnimation = (state = 'thinking') => {
+    console.log(`Testing ${state} animation...`);
+    
+    const world = window.industrialPortfolio.world;
+    if (!world) {
+      console.error('World not found');
+      return;
+    }
+    
+    const entities = Array.from(world.entities.values());
+    const originEntity = entities.find(e => e.getComponent('BrainComponent'));
+    
+    if (originEntity) {
+      const indicator = originEntity.getComponent(VoxelIndicatorComponent);
+      if (indicator) {
+        console.log('Found indicator, current state:', indicator.state);
+        console.log('Setting state to:', state);
+        indicator.setState(state);
+        
+        // Check animation after a moment
+        setTimeout(() => {
+          console.log('Animation info:', indicator.getInfo());
+          console.log('Animation manager active:', indicator.animationManager?.hasActiveAnimation());
+          console.log('Current animation:', indicator.animationManager.currentAnimation);
+        }, 100);
+      } else {
+        console.error('No voxel indicator component on origin entity');
+      }
+    } else {
+      console.error('Origin entity not found');
+    }
+  };
+  
+  // Add function to manually sync entities with render system
+  window.syncVoxelIndicators = () => {
+    console.log('🧊 Manually syncing voxel indicators...');
+    
+    const world = window.industrialPortfolio.world;
+    if (!world) {
+      console.error('World not found');
+      return;
+    }
+    
+    const renderSystem = world.getSystem('voxelIndicatorRender');
+    if (!renderSystem) {
+      console.error('VoxelIndicatorRenderSystem not found');
+      return;
+    }
+    
+    const entities = Array.from(world.entities.values());
+    console.log('🧊 Found entities:', entities.length);
+    
+    entities.forEach(entity => {
+      if (entity.hasComponent(VoxelIndicatorComponent) && entity.hasComponent(TransformComponent)) {
+        console.log('🧊 Adding entity', entity.id, 'to render system');
+        renderSystem.addEntity(entity);
+      }
+    });
+    
+    console.log('🧊 Render system now has', renderSystem.voxelIndicators.size, 'indicators');
+  };
+  
+  // Add immediate visibility test
+  window.testVoxelVisibility = () => {
+    console.log('🧊 Testing immediate voxel visibility...');
+    
+    const world = window.industrialPortfolio.world;
+    if (!world) {
+      console.error('World not found');
+      return;
+    }
+    
+    const entities = Array.from(world.entities.values());
+    const originEntity = entities.find(e => e.getComponent('BrainComponent'));
+    
+    if (originEntity) {
+      const indicator = originEntity.getComponent(VoxelIndicatorComponent);
+      if (indicator) {
+        // Force a cube to be visible immediately
+        console.log('🧊 Setting center voxel visible immediately');
+        indicator.setVoxel(4, 4, 0, 255, 0, 0, 1.0); // Bright red center
+        const centerIndex = indicator.getVoxelIndex(4, 4, 0);
+        const voxel = indicator.voxels[centerIndex];
+        
+        // Force it to be visible without animation
+        voxel.visible = true;
+        voxel.targetVisible = true;
+        voxel.isAnimating = false;
+        voxel.animationType = 'pulse';
+        voxel.appearProgress = 1.0;
+        
+        indicator.needsUpdate = true;
+        
+        console.log('🧊 Forced voxel state:', voxel);
+        console.log('🧊 Indicator info:', indicator.getInfo());
+      } else {
+        console.error('No voxel indicator component on origin entity');
+      }
+    } else {
+      console.error('Origin entity not found');
+    }
+  };
 });
 
 // Handle cleanup

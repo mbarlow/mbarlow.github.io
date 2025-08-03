@@ -178,6 +178,12 @@ export class IndicatorRenderSystem extends System {
         const indicator = entity.getComponent(IndicatorComponent);
         if (!indicator) return;
         
+        // Check if indicator already exists for this entity
+        if (this.indicators.has(entity.id)) {
+            console.log(`⚠️ Indicator already exists for entity ${entity.id}, skipping`);
+            return;
+        }
+        
         const mesh = this.createIndicatorMesh(entity, indicator);
         this.indicators.set(entity.id, mesh);
         this.scene.add(mesh);
@@ -201,7 +207,7 @@ export class IndicatorRenderSystem extends System {
         }
     }
 
-    updateIndicator(entity, mesh) {
+    updateIndicator(entity, mesh, deltaTime) {
         const indicator = entity.getComponent(IndicatorComponent);
         const transform = entity.getComponent(TransformComponent);
         
@@ -300,7 +306,7 @@ export class IndicatorRenderSystem extends System {
             
             // Update indicator if visible
             if (mesh.visible) {
-                this.updateIndicator(entity, mesh);
+                this.updateIndicator(entity, mesh, deltaTime);
             }
         }
     }
