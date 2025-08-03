@@ -33,6 +33,7 @@ class IndustrialPortfolio {
     this.currentFont = "Inter";
     this.initialized = false;
     this.world = new World();
+    this.currentChatTarget = null; // Will be set to origin entity by default
   }
 
   async init() {
@@ -330,6 +331,9 @@ class IndustrialPortfolio {
       // Store references for easy access
       this.playerEntity = player;
       this.originEntity = originMarker;
+      
+      // Set default chat target to origin entity
+      this.currentChatTarget = this.originEntity;
 
       console.log("✅ Player and origin entities configured with indicators");
     } else {
@@ -495,6 +499,43 @@ class IndustrialPortfolio {
     }
 
     console.error("Failed to create session");
+    return null;
+  }
+
+  activatePlayerTargetSession() {
+    const sessionSystem = this.world.getSystem("session");
+    if (!sessionSystem || !this.playerEntity || !this.currentChatTarget) {
+      console.error(
+        "Cannot activate session: missing required entities or systems",
+      );
+      return null;
+    }
+    
+    // Check if there's already an active session with this target
+    const existingSessions = sessionSystem.getSessionHistory(this.playerEntity);
+    const activeSession = existingSessions.find(
+      (s) => s && s.state === "active" && 
+      s.participants.has(this.currentChatTarget.id)
+    );
+    
+    if (activeSession) {
+      console.log("Using existing active session with target:", activeSession.id);
+      return activeSession;
+    }
+    
+    // Create new session with current target
+    console.log("Creating new session between player and", this.currentChatTarget.tag || this.currentChatTarget.id);
+    const newSession = sessionSystem.createSession(
+      this.playerEntity,
+      this.currentChatTarget,
+    );
+    
+    if (newSession) {
+      console.log("✅ Session created with target:", newSession.id);
+      return newSession;
+    }
+    
+    console.error("Failed to create session with target");
     return null;
   }
 
@@ -1053,6 +1094,98 @@ class IndustrialPortfolio {
     }
   }
 
+  async handleConnectCommand(command) {
+    const parts = command.trim().split(/\s+/);
+    const subCommand = parts[1]?.toLowerCase();
+
+    if (!subCommand || subCommand === "help") {
+      this.addMessage(
+        "assistant",
+        `**Connect Command Usage:**\n\n` +
+        `\`/connect help\` - Show this help\n` +
+        `\`/connect list\` - List available entities\n` +
+        `\`/connect origin\` - Connect to origin marker (default)\n` +
+        `\`/connect patrol\` - Connect to patrol bot\n` +
+        `\`/connect <entity>\` - Connect to specific entity by tag\n\n` +
+        `**Examples:**\n` +
+        `\`/connect patrol\` - Start chatting with patrol bot\n` +
+        `\`/connect origin\` - Return to origin marker chat`
+      );
+      return;
+    }
+
+    const sessionSystem = this.world.getSystem("session");
+    if (!sessionSystem || !this.playerEntity) {
+      this.addMessage("assistant", "❌ Session system not available.");
+      return;
+    }
+
+    try {
+      let targetEntity = null;
+      let entityName = "";
+
+      switch (subCommand) {
+        case "list":
+          await this.listAvailableEntities();
+          return;
+
+        case "origin":
+          targetEntity = this.originEntity;
+          entityName = "Origin Marker";
+          break;
+
+        case "patrol":
+        case "bot":
+          // Find patrol bot entity
+          const entities = Array.from(this.world.entities.values());
+          targetEntity = entities.find(e => e.tag === "bot" && e.getComponent("BrainComponent"));
+          entityName = "Patrol Bot";
+          break;
+
+        default:
+          // Try to find entity by tag
+          const allEntities = Array.from(this.world.entities.values());
+          targetEntity = allEntities.find(e => e.tag === subCommand && e.getComponent("BrainComponent"));
+          entityName = subCommand;
+          break;
+      }
+
+      if (!targetEntity) {
+        this.addMessage("assistant", `❌ Entity "${subCommand}" not found or doesn't support chat.`);
+        return;
+      }
+
+      // Switch the active target for chat
+      this.currentChatTarget = targetEntity;
+      
+      this.addMessage("assistant", `✅ Connected to ${entityName}! Your messages will now go to this entity.`);
+
+    } catch (error) {
+      console.error("Connect command error:", error);
+      this.addMessage("assistant", `❌ Connection failed: ${error.message}`);
+    }
+  }
+
+  async listAvailableEntities() {
+    const entities = Array.from(this.world.entities.values());
+    const chatEntities = entities.filter(e => e.getComponent("BrainComponent"));
+    
+    let response = "**Available Entities:**\n\n";
+    
+    chatEntities.forEach(entity => {
+      const brain = entity.getComponent("BrainComponent");
+      const tag = entity.tag || `Entity ${entity.id}`;
+      const personality = brain.personality || "unknown";
+      response += `• **${tag}** - ${personality} (ID: ${entity.id})\n`;
+    });
+
+    if (chatEntities.length === 0) {
+      response += "No entities with chat capabilities found.";
+    }
+
+    this.addMessage("assistant", response);
+  }
+
   showFontDropdown() {
     const fontDropdown = document.getElementById("font-dropdown");
     if (fontDropdown) {
@@ -1142,12 +1275,12 @@ class IndustrialPortfolio {
       return;
     }
 
-    // Ensure session is active
-    const session = this.activatePlayerOriginSession();
+    // Ensure session is active with current chat target
+    const session = this.activatePlayerTargetSession();
     if (!session) {
       this.addMessage(
         "assistant",
-        "Failed to establish connection with assistant.",
+        "Failed to establish connection with target entity.",
       );
       return;
     }
@@ -1180,7 +1313,7 @@ class IndustrialPortfolio {
     const sessionSystem = this.world.getSystem("session");
     const agentSystem = this.world.getSystem("agent");
 
-    if (sessionSystem && this.playerEntity && this.originEntity) {
+    if (sessionSystem && this.playerEntity && this.currentChatTarget) {
       // Add user message to session
       sessionSystem.sendMessage(
         session.id,
@@ -1197,14 +1330,14 @@ class IndustrialPortfolio {
         // Get response from AI using entity context
         const response = await agentSystem.generateResponseWithContext(
           message,
-          this.originEntity,
+          this.currentChatTarget,
           { images: images, userMessage: message },
         );
 
         // Add AI response to session
         sessionSystem.sendMessage(
           session.id,
-          this.originEntity.id,
+          this.currentChatTarget.id,
           response,
           "llm",
         );
@@ -1217,7 +1350,7 @@ class IndustrialPortfolio {
           "Agent system not initialized. Please check if Ollama is running.";
         sessionSystem.sendMessage(
           session.id,
-          this.originEntity.id,
+          this.currentChatTarget.id,
           fallbackResponse,
           "system",
         );
@@ -1275,10 +1408,12 @@ class IndustrialPortfolio {
       await this.handleDeleteCommand(command);
     } else if (cmd === "/titles" || cmd === "/generate-titles") {
       await this.handleGenerateTitlesCommand();
+    } else if (cmd.startsWith("/connect")) {
+      await this.handleConnectCommand(command);
     } else {
       this.addMessage(
         "assistant",
-        `Unknown command: ${command}\n\nAvailable commands:\n/start - Enter FPS mode\n/search <query> - Search chat history\n/history - Show recent sessions\n/save - Force save current session\n/export - Export all session data\n/who - Show entity information\n/model - Display current LLM model\n/context - Show conversation context\n/delete - Delete sessions (see /delete help)\n/titles - Generate titles for untitled sessions`,
+        `Unknown command: ${command}\n\nAvailable commands:\n/start - Enter FPS mode\n/search <query> - Search chat history\n/history - Show recent sessions\n/save - Force save current session\n/export - Export all session data\n/who - Show entity information\n/model - Display current LLM model\n/context - Show conversation context\n/delete - Delete sessions (see /delete help)\n/titles - Generate titles for untitled sessions\n/connect - Connect to entities (see /connect help)`,
       );
     }
   }
