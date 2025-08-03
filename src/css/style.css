@@ -43,7 +43,7 @@
     /* Typography - Font Variables */
     --font-mono: "JetBrains Mono", "Consolas", "Monaco", "Menlo", monospace;
     --font-sans: "Inter", "Roboto", "Helvetica Neue", sans-serif;
-    
+
     /* Font Options */
     --font-jetbrains: "JetBrains Mono", monospace;
     --font-fira: "Fira Code", monospace;
@@ -63,7 +63,7 @@
     --sidebar-collapsed-width: 60px;
     --border-radius: 8px;
     --border-radius-sm: 4px;
-    
+
     /* Transitions */
     --transition-fast: 0.15s ease;
     --transition-normal: 0.25s ease;
@@ -126,7 +126,9 @@ body {
     color: var(--text);
     line-height: 1.5;
     font-weight: 400;
-    transition: background-color var(--transition-normal), color var(--transition-normal);
+    transition:
+        background-color var(--transition-normal),
+        color var(--transition-normal);
     overflow: hidden;
 }
 
@@ -661,6 +663,7 @@ body {
     margin-bottom: 16px;
     display: flex;
     flex-direction: column;
+    opacity: 0.75;
 }
 
 .message.user {
@@ -721,22 +724,22 @@ body {
     .welcome-subtitle {
         font-size: 16px;
     }
-    
+
     .ollama-status-compact {
         top: 12px;
         right: 12px;
         padding: 6px 10px;
     }
-    
+
     .ollama-status {
         display: none;
     }
-    
+
     .model-select-compact {
         min-width: 80px;
         font-size: 11px;
     }
-    
+
     .message {
         width: 90%;
     }
@@ -925,7 +928,8 @@ body.fps-mode .fps-indicator {
 
 /* Loading States */
 @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
         opacity: 0.5;
     }
     50% {
@@ -1043,65 +1047,89 @@ body.fps-mode .fps-indicator {
 }
 
 /* Font Option Previews */
-.font-option[data-font="JetBrains Mono"] { font-family: var(--font-jetbrains); }
-.font-option[data-font="Fira Code"] { font-family: var(--font-fira); }
-.font-option[data-font="Source Code Pro"] { font-family: var(--font-source-code); }
-.font-option[data-font="Roboto Mono"] { font-family: var(--font-roboto-mono); }
-.font-option[data-font="Ubuntu Mono"] { font-family: var(--font-ubuntu-mono); }
-.font-option[data-font="Inter"] { font-family: var(--font-inter); }
-.font-option[data-font="Source Sans Pro"] { font-family: var(--font-source-sans); }
-.font-option[data-font="Roboto"] { font-family: var(--font-roboto); }
-.font-option[data-font="Open Sans"] { font-family: var(--font-open-sans); }
-.font-option[data-font="Lato"] { font-family: var(--font-lato); }
-.font-option[data-font="Poppins"] { font-family: var(--font-poppins); }
-.font-option[data-font="Nunito"] { font-family: var(--font-nunito); }
+.font-option[data-font="JetBrains Mono"] {
+    font-family: var(--font-jetbrains);
+}
+.font-option[data-font="Fira Code"] {
+    font-family: var(--font-fira);
+}
+.font-option[data-font="Source Code Pro"] {
+    font-family: var(--font-source-code);
+}
+.font-option[data-font="Roboto Mono"] {
+    font-family: var(--font-roboto-mono);
+}
+.font-option[data-font="Ubuntu Mono"] {
+    font-family: var(--font-ubuntu-mono);
+}
+.font-option[data-font="Inter"] {
+    font-family: var(--font-inter);
+}
+.font-option[data-font="Source Sans Pro"] {
+    font-family: var(--font-source-sans);
+}
+.font-option[data-font="Roboto"] {
+    font-family: var(--font-roboto);
+}
+.font-option[data-font="Open Sans"] {
+    font-family: var(--font-open-sans);
+}
+.font-option[data-font="Lato"] {
+    font-family: var(--font-lato);
+}
+.font-option[data-font="Poppins"] {
+    font-family: var(--font-poppins);
+}
+.font-option[data-font="Nunito"] {
+    font-family: var(--font-nunito);
+}
 
 /* Dynamic Font Application */
-body[data-font="JetBrains Mono"] { 
-    --font-sans: var(--font-jetbrains); 
-    --font-mono: var(--font-jetbrains); 
+body[data-font="JetBrains Mono"] {
+    --font-sans: var(--font-jetbrains);
+    --font-mono: var(--font-jetbrains);
 }
-body[data-font="Fira Code"] { 
-    --font-sans: var(--font-fira); 
-    --font-mono: var(--font-fira); 
+body[data-font="Fira Code"] {
+    --font-sans: var(--font-fira);
+    --font-mono: var(--font-fira);
 }
-body[data-font="Source Code Pro"] { 
-    --font-sans: var(--font-source-code); 
-    --font-mono: var(--font-source-code); 
+body[data-font="Source Code Pro"] {
+    --font-sans: var(--font-source-code);
+    --font-mono: var(--font-source-code);
 }
-body[data-font="Roboto Mono"] { 
-    --font-sans: var(--font-roboto-mono); 
-    --font-mono: var(--font-roboto-mono); 
+body[data-font="Roboto Mono"] {
+    --font-sans: var(--font-roboto-mono);
+    --font-mono: var(--font-roboto-mono);
 }
-body[data-font="Ubuntu Mono"] { 
-    --font-sans: var(--font-ubuntu-mono); 
-    --font-mono: var(--font-ubuntu-mono); 
+body[data-font="Ubuntu Mono"] {
+    --font-sans: var(--font-ubuntu-mono);
+    --font-mono: var(--font-ubuntu-mono);
 }
-body[data-font="Inter"] { 
-    --font-sans: var(--font-inter); 
-    --font-mono: var(--font-jetbrains); 
+body[data-font="Inter"] {
+    --font-sans: var(--font-inter);
+    --font-mono: var(--font-jetbrains);
 }
-body[data-font="Source Sans Pro"] { 
-    --font-sans: var(--font-source-sans); 
-    --font-mono: var(--font-jetbrains); 
+body[data-font="Source Sans Pro"] {
+    --font-sans: var(--font-source-sans);
+    --font-mono: var(--font-jetbrains);
 }
-body[data-font="Roboto"] { 
-    --font-sans: var(--font-roboto); 
-    --font-mono: var(--font-jetbrains); 
+body[data-font="Roboto"] {
+    --font-sans: var(--font-roboto);
+    --font-mono: var(--font-jetbrains);
 }
-body[data-font="Open Sans"] { 
-    --font-sans: var(--font-open-sans); 
-    --font-mono: var(--font-jetbrains); 
+body[data-font="Open Sans"] {
+    --font-sans: var(--font-open-sans);
+    --font-mono: var(--font-jetbrains);
 }
-body[data-font="Lato"] { 
-    --font-sans: var(--font-lato); 
-    --font-mono: var(--font-jetbrains); 
+body[data-font="Lato"] {
+    --font-sans: var(--font-lato);
+    --font-mono: var(--font-jetbrains);
 }
-body[data-font="Poppins"] { 
-    --font-sans: var(--font-poppins); 
-    --font-mono: var(--font-jetbrains); 
+body[data-font="Poppins"] {
+    --font-sans: var(--font-poppins);
+    --font-mono: var(--font-jetbrains);
 }
-body[data-font="Nunito"] { 
-    --font-sans: var(--font-nunito); 
-    --font-mono: var(--font-jetbrains); 
+body[data-font="Nunito"] {
+    --font-sans: var(--font-nunito);
+    --font-mono: var(--font-jetbrains);
 }
