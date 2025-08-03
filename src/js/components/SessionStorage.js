@@ -211,6 +211,46 @@ export class SessionStorage extends Component {
         }
     }
 
+    // Delete functionality
+    async deleteSession(sessionId) {
+        if (!this.db) await this.initIndexedDB();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['sessions'], 'readwrite');
+            const store = transaction.objectStore('sessions');
+            const request = store.delete(sessionId);
+            
+            request.onsuccess = () => resolve(true);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async deleteChatLog(chatLogId) {
+        if (!this.db) await this.initIndexedDB();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['chatLogs'], 'readwrite');
+            const store = transaction.objectStore('chatLogs');
+            const request = store.delete(chatLogId);
+            
+            request.onsuccess = () => resolve(true);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async deleteBrain(entityId) {
+        if (!this.db) await this.initIndexedDB();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['brains'], 'readwrite');
+            const store = transaction.objectStore('brains');
+            const request = store.delete(entityId);
+            
+            request.onsuccess = () => resolve(true);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
     // Export/Import functionality
     async exportAllData() {
         const sessions = await this.getAllSessions();
