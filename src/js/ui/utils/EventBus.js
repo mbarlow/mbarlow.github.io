@@ -169,10 +169,17 @@ export const UIEvents = {
     SESSION_DELETED: 'session:deleted',
     SESSION_RENAMED: 'session:renamed',
     SESSION_LIST_UPDATED: 'session:list:updated',
+    SESSION_CHANGED: 'session:changed',
     
     // Chat events
     MESSAGE_SENT: 'message:sent',
     MESSAGE_RECEIVED: 'message:received',
+    MESSAGE_ADDED: 'message:added',
+    MESSAGES_CLEARED: 'messages:cleared',
+    CHAT_INPUT_FOCUSED: 'chat:input:focused',
+    CHAT_TARGET_CHANGED: 'chat:target:changed',
+    IMAGE_ADDED: 'chat:image:added',
+    IMAGES_CLEARED: 'chat:images:cleared',
     
     // Modal events
     MODAL_OPENED: 'modal:opened',

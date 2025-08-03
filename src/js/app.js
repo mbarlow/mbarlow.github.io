@@ -23,7 +23,7 @@ import {
   TransformComponent,
 } from "./components/index.js";
 import { SystemPromptBuilder } from "./utils/index.js";
-import { ThemeManager, FontManager, uiManager, templateRegistry } from "./ui/index.js";
+import { ThemeManager, FontManager, Navigation, Sidebar, ChatInterface, uiManager, templateRegistry } from "./ui/index.js";
 
 // Main Application Controller
 class IndustrialPortfolio {
@@ -39,6 +39,9 @@ class IndustrialPortfolio {
     // Initialize UI manager and components
     this.themeManager = new ThemeManager();
     this.fontManager = new FontManager();
+    this.navigation = new Navigation();
+    this.sidebar = new Sidebar();
+    this.chatInterface = new ChatInterface();
   }
 
   async init() {
@@ -49,11 +52,9 @@ class IndustrialPortfolio {
       // Initialize UI manager and templates
       await this.initUI();
       
-      this.initNavigation();
-      this.initSidebar();
-      this.initChatInterface();
       this.initSessionsList();
       await this.initECS();
+      this.initChatInterface(); // Move after ECS initialization
       this.initialized = true;
       console.log("✅ Industrial Portfolio initialized successfully");
     } catch (error) {
@@ -158,52 +159,28 @@ class IndustrialPortfolio {
     uiManager.register('fontManager', this.fontManager);
     this.fontManager.init();
 
+    // Register and initialize navigation
+    uiManager.register('navigation', this.navigation);
+    this.navigation.init();
+
+    // Register and initialize sidebar
+    uiManager.register('sidebar', this.sidebar);
+    this.sidebar.init();
+
+    // Register and initialize chat interface
+    uiManager.register('chatInterface', this.chatInterface);
+    this.chatInterface.init();
+
     // Update references from managers
     this.currentTheme = this.themeManager.getTheme();
     this.currentFont = this.fontManager.getFont();
+    this.currentView = this.navigation.getCurrentView();
+    this.sidebarCollapsed = this.sidebar.isCollapsedState();
 
     console.log(`✅ UI manager initialized (theme: ${this.currentTheme})`);
   }
 
 
-  initNavigation() {
-    console.log("🧭 Initializing navigation...");
-
-    const navItems = document.querySelectorAll(".nav-item");
-
-    navItems.forEach((item) => {
-      item.addEventListener("click", (e) => {
-        e.preventDefault();
-        const viewName = item.dataset.view;
-        if (viewName) {
-          this.switchView(viewName);
-        }
-      });
-    });
-
-    console.log("✅ Navigation initialized");
-  }
-
-  initSidebar() {
-    console.log("📱 Initializing sidebar...");
-
-    const sidebarToggle = document.getElementById("sidebar-toggle");
-    const sidebar = document.getElementById("sidebar");
-
-    if (sidebarToggle && sidebar) {
-      sidebarToggle.addEventListener("click", () => {
-        this.toggleSidebar();
-      });
-    }
-
-    // Load saved sidebar state
-    const savedCollapsed = localStorage.getItem("sidebar-collapsed") === "true";
-    if (savedCollapsed) {
-      this.collapseSidebar();
-    }
-
-    console.log("✅ Sidebar initialized");
-  }
 
   initializeDefaultConnections() {
     console.log("🔗 Initializing default connections...");
@@ -320,52 +297,37 @@ class IndustrialPortfolio {
   initChatInterface() {
     console.log("💬 Initializing chat interface...");
 
-    const chatInput = document.getElementById("chat-input");
-    const chatSend = document.getElementById("chat-send");
+    // Inject dependencies into chat interface
+    const sessionSystem = this.world.getSystem("session");
+    const agentSystem = this.world.getSystem("agent");
+    
+    this.chatInterface.injectDependencies({
+      world: this.world,
+      sessionSystem,
+      agentSystem,
+      originEntity: this.originEntity,
+      appInstance: this
+    });
+
+    // Bind command handling events
+    this.chatInterface.subscribe('command:executed', this.handleChatCommand.bind(this));
+    
+    // Bind chat input focus to activate session
+    this.chatInterface.subscribe('chat:input:focused', this.handleChatInputFocus.bind(this));
+
+    // Handle model selector (if it exists)
     const modelSelect = document.getElementById("model-select");
-    const imageUploadBtn = document.getElementById("image-upload-btn");
-    const imageUpload = document.getElementById("image-upload");
-
-    if (chatInput && chatSend) {
-      // Auto-resize textarea
-      chatInput.addEventListener("input", () => {
-        this.autoResizeTextarea(chatInput);
-        this.updateSendButton(chatInput, chatSend);
-      });
-
-      // Handle Enter key
-      chatInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          this.sendMessage();
-        }
-      });
-
-      // Handle send button
-      chatSend.addEventListener("click", () => {
-        this.sendMessage();
-      });
-
-      // Initial state
-      this.updateSendButton(chatInput, chatSend);
-
-      // Handle focus event to activate session
-      chatInput.addEventListener("focus", () => {
-        this.activatePlayerOriginSession();
-      });
-    }
-
-    // Model selector
     if (modelSelect) {
       modelSelect.addEventListener("change", (e) => {
-        const agentSystem = this.world.getSystem("agent");
         if (agentSystem) {
           agentSystem.switchModel(e.target.value);
         }
       });
     }
 
-    // Image upload
+    // Handle image upload buttons (if they exist)
+    const imageUploadBtn = document.getElementById("image-upload-btn");
+    const imageUpload = document.getElementById("image-upload");
     if (imageUploadBtn && imageUpload) {
       imageUploadBtn.addEventListener("click", () => {
         imageUpload.click();
@@ -376,14 +338,79 @@ class IndustrialPortfolio {
       });
     }
 
-    // Clipboard paste support
-    if (chatInput) {
-      chatInput.addEventListener("paste", async (e) => {
-        await this.handlePaste(e);
-      });
-    }
-
     console.log("✅ Chat interface initialized");
+  }
+
+  /**
+   * Handle chat commands from ChatInterface component
+   * @param {Object} data - Command data
+   */
+  handleChatCommand(data) {
+    const { command, args } = data;
+    
+    switch (command) {
+      case 'start':
+        this.handleStartCommand();
+        break;
+      case 'search':
+        this.handleSearchCommand(args.query);
+        break;
+      case 'history':
+        this.handleHistoryCommand();
+        break;
+      case 'save':
+        this.handleSaveCommand();
+        break;
+      case 'export':
+        this.handleExportCommand();
+        break;
+      case 'who':
+        this.handleWhoCommand();
+        break;
+      case 'model':
+        this.handleModelCommand();
+        break;
+      case 'context':
+        this.handleContextCommand();
+        break;
+      case 'delete':
+        this.handleDeleteCommand(args.subCommand);
+        break;
+      case 'titles':
+        this.handleGenerateTitlesCommand();
+        break;
+      case 'connect':
+        this.handleConnectCommand(args.subCommand);
+        break;
+      default:
+        console.warn('Unknown chat command:', command);
+    }
+  }
+
+  /**
+   * Handle start command (FPS mode)
+   */
+  async handleStartCommand() {
+    this.addMessage(
+      "assistant",
+      "Starting FPS mode... Use WASD to move, mouse to look around, ~ to toggle chat, Esc to exit.",
+    );
+
+    // Enter FPS mode
+    const fpsControllerSystem = this.world.getSystem("fpsController");
+    if (fpsControllerSystem) {
+      fpsControllerSystem.enterFPSMode();
+    } else {
+      this.addMessage("assistant", "Error: FPS system not available.");
+    }
+  }
+
+  /**
+   * Handle chat input focus to activate session
+   */
+  handleChatInputFocus() {
+    console.log("💬 Chat input focused, ensuring session is active");
+    this.activatePlayerOriginSession();
   }
 
   initSessionsList() {
@@ -889,87 +916,56 @@ class IndustrialPortfolio {
   }
 
   setTheme(theme) {
-    console.log(`🎨 Setting theme via legacy method: ${theme}`);
-    
-    // Delegate to theme manager
-    if (this.themeManager) {
-      const success = this.themeManager.setTheme(theme);
-      if (success) {
-        this.currentTheme = theme;
-      }
-      return success;
-    } else {
-      console.warn("Theme manager not initialized, falling back to legacy method");
-      
-      // Legacy fallback (for compatibility during migration)
+    // Delegate to theme manager component
+    const success = this.themeManager?.setTheme(theme);
+    if (success) {
       this.currentTheme = theme;
-      document.body.setAttribute("data-theme", theme);
-      
-      document.querySelectorAll(".theme-btn").forEach((btn) => {
-        btn.classList.remove("active");
-        if (btn.dataset.theme === theme) {
-          btn.classList.add("active");
-        }
-      });
-      
-      localStorage.setItem("portfolio-theme", theme);
-      console.log(`✅ Theme changed to: ${theme} (legacy mode)`);
-      return true;
     }
+    return success;
   }
 
   setFont(fontName) {
-    console.log(`🔤 Setting font via legacy method: ${fontName}`);
-    
-    // Delegate to font manager
-    if (this.fontManager) {
-      const success = this.fontManager.setFont(fontName);
-      if (success) {
-        this.currentFont = fontName;
-      }
-      return success;
-    } else {
-      console.warn("Font manager not initialized, falling back to legacy method");
-      
-      // Legacy fallback (for compatibility during migration)
+    // Delegate to font manager component
+    const success = this.fontManager?.setFont(fontName);
+    if (success) {
       this.currentFont = fontName;
-      document.body.setAttribute("data-font", fontName);
-      
-      document.querySelectorAll(".font-option").forEach((option) => {
-        option.classList.remove("active");
-        if (option.dataset.font === fontName) {
-          option.classList.add("active");
-        }
-      });
-      
-      localStorage.setItem("portfolio-font", fontName);
-      console.log(`✅ Font changed to: ${fontName} (legacy mode)`);
-      return true;
     }
+    return success;
   }
 
   activatePlayerOriginSession() {
+    console.log("🔄 activatePlayerOriginSession called");
+    
     const sessionSystem = this.world.getSystem("session");
     if (!sessionSystem || !this.playerEntity || !this.originEntity) {
       console.error(
         "Cannot activate session: missing required entities or systems",
+        {
+          sessionSystem: !!sessionSystem,
+          playerEntity: !!this.playerEntity,
+          originEntity: !!this.originEntity
+        }
       );
       return null;
     }
 
+    console.log("🔄 All systems available, checking for existing sessions");
+
     // Check if there's already an active session
     const existingSessions = sessionSystem.getSessionHistory(this.playerEntity);
+    console.log("🔄 Existing sessions:", existingSessions);
+    
     const activeSession = existingSessions.find(
       (s) => s && s.state === "active",
     );
 
     if (activeSession) {
-      console.log("Using existing active session:", activeSession.id);
+      console.log("✅ Using existing active session:", activeSession.id);
       return activeSession;
     }
 
     // Create new session
-    console.log("Creating new session between player and origin");
+    console.log("🔄 Creating new session between player and origin");
     const newSession = sessionSystem.createSession(
       this.playerEntity,
       this.originEntity,
@@ -977,10 +973,11 @@ class IndustrialPortfolio {
 
     if (newSession) {
       console.log("✅ Session created:", newSession.id);
+      console.log("✅ Session details:", newSession);
       return newSession;
     }
 
-    console.error("Failed to create session");
+    console.error("❌ Failed to create session");
     return null;
   }
 
@@ -1752,339 +1749,72 @@ class IndustrialPortfolio {
   }
 
   switchView(viewName) {
-    console.log(`🔄 Switching to ${viewName} view`);
-
-    // Update nav items
-    document.querySelectorAll(".nav-item").forEach((item) => {
-      item.classList.remove("active");
-      if (item.dataset.view === viewName) {
-        item.classList.add("active");
-      }
-    });
-
-    // Update views
-    document.querySelectorAll(".view").forEach((view) => {
-      view.classList.remove("active");
-    });
-
-    const targetView = document.getElementById(`${viewName}-view`);
-    if (targetView) {
-      targetView.classList.add("active");
+    // Delegate to navigation component
+    const success = this.navigation?.switchView(viewName);
+    if (success) {
       this.currentView = viewName;
     }
-
-    console.log(`✅ Switched to ${viewName} view`);
+    return success;
   }
 
   toggleSidebar() {
-    const sidebar = document.getElementById("sidebar");
-
-    if (this.sidebarCollapsed) {
-      this.expandSidebar();
-    } else {
-      this.collapseSidebar();
-    }
+    // Delegate to sidebar component
+    return this.sidebar?.toggle();
   }
 
   collapseSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    sidebar.classList.add("collapsed");
-    this.sidebarCollapsed = true;
-    localStorage.setItem("sidebar-collapsed", "true");
-    console.log("🔼 Sidebar collapsed");
+    // Delegate to sidebar component
+    return this.sidebar?.collapse();
   }
 
   expandSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    sidebar.classList.remove("collapsed");
-    this.sidebarCollapsed = false;
-    localStorage.setItem("sidebar-collapsed", "false");
-    console.log("🔽 Sidebar expanded");
+    // Delegate to sidebar component
+    return this.sidebar?.expand();
   }
 
-  autoResizeTextarea(textarea) {
-    textarea.style.height = "auto";
-    textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
-  }
-
-  updateSendButton(input, button) {
-    const hasText = input.value.trim().length > 0;
-    button.disabled = !hasText;
-  }
 
   async sendMessage() {
-    const chatInput = document.getElementById("chat-input");
-    const message = chatInput.value.trim();
-
-    if (!message) return;
-
-    console.log("📤 Sending message:", message);
-
-    // Check for slash commands
-    if (message.startsWith("/")) {
-      await this.handleSlashCommand(message);
-      return;
-    }
-
-    // Ensure session is active with current chat target
-    const session = this.activatePlayerTargetSession();
-    if (!session) {
-      this.addMessage(
-        "assistant",
-        "Failed to establish connection with target entity.",
-      );
-      return;
-    }
-
-    // Get images if any
-    const imagePreview = document.getElementById("image-preview");
-    const images = [];
-    if (imagePreview) {
-      const imageElements = imagePreview.querySelectorAll("img");
-      for (const img of imageElements) {
-        const base64 = img.getAttribute("data-base64");
-        if (base64) images.push(base64);
-      }
-    }
-
-    // Clear input and images
-    chatInput.value = "";
-    this.autoResizeTextarea(chatInput);
-    this.updateSendButton(chatInput, document.getElementById("chat-send"));
-    if (imagePreview) {
-      imagePreview.innerHTML = "";
-      // Hide image container
-      const imageContainer = document.getElementById("image-upload-container");
-      if (imageContainer) {
-        imageContainer.style.display = "none";
-      }
-    }
-
-    // Send message through session system
-    const sessionSystem = this.world.getSystem("session");
-    const agentSystem = this.world.getSystem("agent");
-
-    if (sessionSystem && this.playerEntity && this.currentChatTarget) {
-      // Add user message to session with images
-      sessionSystem.sendMessage(
-        session.id,
-        this.playerEntity.id,
-        message,
-        "user",
-        { images: images }
-      );
-
-      // Display user message
-      this.addMessage("user", message);
-
-      // Get AI response if agent system is ready
-      if (agentSystem && agentSystem.isConnected) {
-        // Get response from AI using entity context
-        const response = await agentSystem.generateResponseWithContext(
-          message,
-          this.currentChatTarget,
-          { images: images, userMessage: message },
-        );
-
-        // Add AI response to session
-        sessionSystem.sendMessage(
-          session.id,
-          this.currentChatTarget.id,
-          response,
-          "llm",
-        );
-
-        // Display AI response
-        this.addMessage("assistant", response);
-        
-        // Refresh sessions list to show updated activity
-        this.loadSessionsList();
-      } else {
-        // Fallback response
-        const fallbackResponse =
-          "Agent system not initialized. Please check if Ollama is running.";
-        sessionSystem.sendMessage(
-          session.id,
-          this.currentChatTarget.id,
-          fallbackResponse,
-          "system",
-        );
-        this.addMessage("assistant", fallbackResponse);
-      }
-    } else {
-      // Fallback if session system not ready
-      this.addMessage("user", message);
-      this.addMessage("assistant", "Session system not initialized.");
-    }
+    // Delegate to ChatInterface component
+    return this.chatInterface.sendMessage();
   }
 
-  async handleSlashCommand(command) {
-    const chatInput = document.getElementById("chat-input");
-
-    // Clear input
-    chatInput.value = "";
-    this.autoResizeTextarea(chatInput);
-    this.updateSendButton(chatInput, document.getElementById("chat-send"));
-
-    // Add command to chat history
-    this.addMessage("user", command);
-
-    const cmd = command.toLowerCase();
-
-    if (cmd === "/start") {
-      this.addMessage(
-        "assistant",
-        "Starting FPS mode... Use WASD to move, mouse to look around, ~ to toggle chat, Esc to exit.",
-      );
-
-      // Enter FPS mode
-      const fpsControllerSystem = this.world.getSystem("fpsController");
-      if (fpsControllerSystem) {
-        fpsControllerSystem.enterFPSMode();
-      } else {
-        this.addMessage("assistant", "Error: FPS system not available.");
-      }
-    } else if (cmd.startsWith("/search ")) {
-      const query = command.substring(8);
-      await this.handleSearchCommand(query);
-    } else if (cmd === "/history") {
-      await this.handleHistoryCommand();
-    } else if (cmd === "/save") {
-      await this.handleSaveCommand();
-    } else if (cmd === "/export") {
-      await this.handleExportCommand();
-    } else if (cmd === "/who") {
-      await this.handleWhoCommand();
-    } else if (cmd === "/model") {
-      await this.handleModelCommand();
-    } else if (cmd === "/context") {
-      await this.handleContextCommand();
-    } else if (cmd.startsWith("/delete")) {
-      await this.handleDeleteCommand(command);
-    } else if (cmd === "/titles" || cmd === "/generate-titles") {
-      await this.handleGenerateTitlesCommand();
-    } else if (cmd.startsWith("/connect")) {
-      await this.handleConnectCommand(command);
-    } else {
-      this.addMessage(
-        "assistant",
-        `Unknown command: ${command}\n\nAvailable commands:\n/start - Enter FPS mode\n/search <query> - Search chat history\n/history - Show recent sessions\n/save - Force save current session\n/export - Export all session data\n/who - Show entity information\n/model - Display current LLM model\n/context - Show conversation context\n/delete - Delete sessions (see /delete help)\n/titles - Generate titles for untitled sessions\n/connect - Connect to entities (see /connect help)`,
-      );
-    }
-  }
 
   addMessage(type, content) {
-    const chatMessages = document.getElementById("chat-messages");
-    const welcome = chatMessages.querySelector(".chat-welcome");
-
-    // Remove welcome message if it exists
-    if (welcome) {
-      welcome.remove();
-    }
-
-    // Create message element
-    const messageDiv = document.createElement("div");
-    messageDiv.className = `message ${type}`;
-
-    const messageContent = document.createElement("div");
-    messageContent.className = "message-content";
-    messageContent.textContent = content;
-
-    messageDiv.appendChild(messageContent);
-    chatMessages.appendChild(messageDiv);
-
-    // Scroll to bottom
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    // Delegate to ChatInterface component
+    return this.chatInterface.addMessage(type, content);
   }
 
   async handleImageUpload(files) {
-    const imagePreview = document.getElementById("image-preview");
-    const agentSystem = this.world.getSystem("agent");
-
-    if (!agentSystem) {
-      alert("AgentSystem not ready. Please wait for Ollama to connect.");
-      return;
-    }
-
-    if (!agentSystem.supportsImages) {
-      alert(
-        `Current model "${agentSystem.currentModel}" doesn't support images. Please select a multimodal model like gemma2 or gemma3.`,
-      );
-      return;
-    }
-
-    // Show image upload container if hidden
-    const imageContainer = document.getElementById("image-upload-container");
-    if (imageContainer && files.length > 0) {
-      imageContainer.style.display = "block";
-    }
-
-    // Process each file
+    // Delegate to ChatInterface component
     for (const file of files) {
-      if (!file.type.startsWith("image/")) continue;
-
-      try {
-        const base64 = await agentSystem.processImage(file);
-
-        // Create preview
-        const img = document.createElement("img");
-        img.src = `data:${file.type};base64,${base64}`;
-        img.setAttribute("data-base64", base64);
-        img.title = "Click to remove";
-        img.addEventListener("click", () => {
-          img.remove();
-          // Hide container if no images left
-          if (imagePreview.children.length === 0) {
-            const imageContainer = document.getElementById(
-              "image-upload-container",
-            );
-            if (imageContainer) {
-              imageContainer.style.display = "none";
-            }
-          }
-        });
-
-        imagePreview.appendChild(img);
-      } catch (error) {
-        console.error("Failed to process image:", error);
+      if (file.type.startsWith("image/")) {
+        try {
+          await this.chatInterface.handleImageFile(file);
+        } catch (error) {
+          console.error("Failed to process image:", error);
+          alert("Failed to process image: " + error.message);
+        }
       }
     }
   }
 
   async handlePaste(event) {
+    // Delegate to ChatInterface component - it handles paste events automatically
+    // This method is kept for backward compatibility with any external event handlers
     const clipboardData = event.clipboardData || window.clipboardData;
-    if (!clipboardData) {
-      console.log("📋 No clipboard data available");
-      return;
-    }
+    if (!clipboardData) return;
 
-    const items = clipboardData.items;
     const imageFiles = [];
-
-    console.log("📋 Clipboard items:", items.length);
-    for (let i = 0; i < items.length; i++) {
-      console.log(`📋 Item ${i}: type=${items[i].type}, kind=${items[i].kind}`);
-    }
-
-    // Look for images in clipboard
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
+    for (let i = 0; i < clipboardData.items.length; i++) {
+      const item = clipboardData.items[i];
       if (item.type.startsWith("image/")) {
-        event.preventDefault(); // Prevent default paste behavior for images
         const file = item.getAsFile();
-        if (file) {
-          imageFiles.push(file);
-          console.log("📋 Found image file:", file.name, file.type, file.size);
-        }
+        if (file) imageFiles.push(file);
       }
     }
 
-    // Process images if found
     if (imageFiles.length > 0) {
-      console.log("📋 Pasted", imageFiles.length, "image(s)");
       await this.handleImageUpload(imageFiles);
-    } else {
-      console.log("📋 No images found in clipboard");
     }
   }
 
@@ -2252,6 +1982,27 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.debugRefreshSessions = () => {
     console.log("🔄 Manually refreshing sessions...");
     window.industrialPortfolio.debugRefreshSessions();
+  };
+
+  // Debug function to test session activation
+  window.debugTestSessionActivation = () => {
+    console.log("🧪 Testing session activation...");
+    const app = window.industrialPortfolio;
+    if (app) {
+      console.log("🧪 App instance:", app);
+      console.log("🧪 Player entity:", app.playerEntity);
+      console.log("🧪 Origin entity:", app.originEntity);
+      console.log("🧪 Chat interface:", app.chatInterface);
+      
+      const result = app.activatePlayerOriginSession();
+      console.log("🧪 Session activation result:", result);
+      
+      // Test the ChatInterface session check
+      if (app.chatInterface) {
+        const sessionCheck = app.chatInterface.ensureActiveSession();
+        console.log("🧪 ChatInterface session check result:", sessionCheck);
+      }
+    }
   };
 
   window.debugSessions = async () => {
