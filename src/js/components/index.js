@@ -12,5 +12,4 @@ export { Session } from './Session.js';
 export { ChatLog } from './ChatLog.js';
 export { BrainComponent } from './BrainComponent.js';
 export { SessionStorage } from './SessionStorage.js';
-export { IndicatorComponent } from './IndicatorComponent.js';
 export { VoxelIndicatorComponent } from './VoxelIndicatorComponent.js';

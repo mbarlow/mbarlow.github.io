@@ -19,7 +19,6 @@ import {
   Session,
   ChatLog,
   BrainComponent,
-  IndicatorComponent,
   VoxelIndicatorComponent,
   TransformComponent,
 } from "./components/index.js";
