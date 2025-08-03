@@ -7,6 +7,9 @@ import {
   MovementComponent,
   PlayerControllerComponent,
   PatrolComponent,
+  BrainComponent,
+  VoxelIndicatorComponent,
+  Connection,
 } from "../components/index.js";
 
 /**
@@ -261,6 +264,43 @@ export class LevelLoader extends System {
     });
     bot.addComponent(patrol);
 
+    // Add brain component for AI personality
+    const brain = new BrainComponent({
+      personality: "patrol",
+      emotion: "alert",
+      energy: 0.8,
+      model: "gemma3",
+      systemPrompt: "You are a Patrol Bot, a security AI that patrols the perimeter of this 3D space. You're vigilant, dutiful, and take your security responsibilities seriously. You notice movement, changes in the environment, and can engage in conversation while maintaining your patrol route. You're friendly but professional, with a slight military/security mindset. You can discuss what you observe during your patrols and your role in keeping the area secure.",
+      contextSettings: {
+        includeHistory: true,
+        historyLimit: 10,
+        includeEntityStates: true,
+        includeSpatialContext: true
+      }
+    });
+    bot.addComponent(brain);
+
+    // Add 3D voxel indicator component for visual feedback
+    const botIndicator = new VoxelIndicatorComponent({
+      position: { x: 0, y: 1.5, z: 0 }, // Above the bot
+      brightness: 0.9,
+      state: "idle",
+      gridSize: { width: 6, height: 6, depth: 1 }, // Smaller grid for patrol bot
+    });
+    bot.addComponent(botIndicator);
+
+    // Set initial pattern for patrol bot indicator
+    this.setPatrolBotIndicatorPattern(botIndicator);
+
+    // Add connection component for chat participation
+    const connection = new Connection({
+      sourceEntityId: bot.id,
+      targetEntityId: null, // Will be set when connecting to other entities
+      connectionType: "patrol",
+      isActive: false
+    });
+    bot.addComponent(connection);
+
     // Add mesh to scene
     if (renderSystem) {
       renderSystem.addMeshToScene(mesh.mesh);
@@ -279,6 +319,11 @@ export class LevelLoader extends System {
 
     // For now, create default environment
     await this.createDefaultEnvironment(world);
+  }
+
+  setPatrolBotIndicatorPattern(indicator) {
+    // Create a security-themed pattern for patrol bot - shield/radar pattern
+    indicator.createPattern("patrol");
   }
 
   update(deltaTime) {

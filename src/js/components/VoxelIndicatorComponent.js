@@ -251,6 +251,9 @@ export class VoxelIndicatorComponent extends Component {
             case 'success':
                 this.createSuccessPattern();
                 break;
+            case 'patrol':
+                this.createPatrolPattern();
+                break;
             default:
                 this.createIdlePattern();
         }
@@ -394,6 +397,42 @@ export class VoxelIndicatorComponent extends Component {
         console.log('🧊 Full grid pattern: all voxels set');
         // Wave animation from bottom-left to top-right
         this.animateVoxelsAppearWave(voxelIndices);
+    }
+    
+    createPatrolPattern() {
+        console.log('🧊 Creating patrol pattern');
+        // Create a shield/radar pattern for patrol bot
+        const patrolColor = [255, 165, 0]; // Orange for security/warning
+        const voxelIndices = [];
+        
+        // Create a shield-like pattern (6x6 grid)
+        const shield = [
+            // Row 0 (top)
+            [2, 3],
+            // Row 1
+            [1, 2, 3, 4],
+            // Row 2 
+            [1, 2, 3, 4],
+            // Row 3
+            [1, 2, 3, 4],
+            // Row 4
+            [2, 3],
+            // Row 5 (bottom)
+            [2, 3]
+        ];
+        
+        shield.forEach((row, y) => {
+            row.forEach(x => {
+                if (x < this.gridSize.width && y < this.gridSize.height) {
+                    this.setVoxel(x, y, 0, ...patrolColor);
+                    voxelIndices.push(this.getVoxelIndex(x, y, 0));
+                }
+            });
+        });
+        
+        console.log('🧊 Patrol shield pattern: voxels set');
+        // Wave animation from center outward
+        this.animateVoxelsAppear(voxelIndices, { sequenceDelay: 40 });
     }
     
     /**
