@@ -45,13 +45,13 @@ Incremental refactoring of 2,287-line app.js into modular UI components.
 - [x] Test theme switching still works
 - [x] Add debug logging for theme changes
 
-### Task 2.2: Extract Font Management ⏳
-- [ ] Create `FontManager.js`
-- [ ] Move font-related methods from app.js
-- [ ] Create font dropdown template
-- [ ] Update app.js to use FontManager
-- [ ] Test font switching still works
-- [ ] Add debug logging for font changes
+### Task 2.2: Extract Font Management ✅
+- [x] Create `FontManager.js`
+- [x] Move font-related methods from app.js
+- [x] Create font dropdown template
+- [x] Update app.js to use FontManager
+- [x] Test font switching still works
+- [x] Add debug logging for font changes
 
 ### Task 2.3: Extract Navigation ⏳
 - [ ] Create `Navigation.js`

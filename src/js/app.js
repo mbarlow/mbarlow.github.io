@@ -23,7 +23,7 @@ import {
   TransformComponent,
 } from "./components/index.js";
 import { SystemPromptBuilder } from "./utils/index.js";
-import { ThemeManager, uiManager, templateRegistry } from "./ui/index.js";
+import { ThemeManager, FontManager, uiManager, templateRegistry } from "./ui/index.js";
 
 // Main Application Controller
 class IndustrialPortfolio {
@@ -38,6 +38,7 @@ class IndustrialPortfolio {
     
     // Initialize UI manager and components
     this.themeManager = new ThemeManager();
+    this.fontManager = new FontManager();
   }
 
   async init() {
@@ -48,7 +49,6 @@ class IndustrialPortfolio {
       // Initialize UI manager and templates
       await this.initUI();
       
-      this.initFontSystem();
       this.initNavigation();
       this.initSidebar();
       this.initChatInterface();
@@ -154,56 +154,17 @@ class IndustrialPortfolio {
     uiManager.register('themeManager', this.themeManager);
     this.themeManager.init();
 
-    // Update currentTheme reference from theme manager
+    // Register and initialize font manager
+    uiManager.register('fontManager', this.fontManager);
+    this.fontManager.init();
+
+    // Update references from managers
     this.currentTheme = this.themeManager.getTheme();
+    this.currentFont = this.fontManager.getFont();
 
     console.log(`✅ UI manager initialized (theme: ${this.currentTheme})`);
   }
 
-  initFontSystem() {
-    console.log("🔤 Initializing font system...");
-
-    // Set initial font
-    const savedFont = localStorage.getItem("portfolio-font") || "Inter";
-    this.setFont(savedFont);
-
-    // Setup font dropdown
-    const fontToggle = document.getElementById("font-toggle");
-    const fontDropdown = document.getElementById("font-dropdown");
-    const fontClose = document.getElementById("font-dropdown-close");
-    const fontOptions = document.querySelectorAll(".font-option");
-
-    if (fontToggle && fontDropdown) {
-      fontToggle.addEventListener("click", () => {
-        this.showFontDropdown();
-      });
-
-      fontClose.addEventListener("click", () => {
-        this.hideFontDropdown();
-      });
-
-      // Close on backdrop click
-      fontDropdown.addEventListener("click", (e) => {
-        if (e.target === fontDropdown) {
-          this.hideFontDropdown();
-        }
-      });
-
-      // Font option listeners
-      fontOptions.forEach((option) => {
-        option.addEventListener("click", (e) => {
-          e.preventDefault();
-          const fontName = option.dataset.font;
-          if (fontName) {
-            this.setFont(fontName);
-            this.hideFontDropdown();
-          }
-        });
-      });
-    }
-
-    console.log(`✅ Font system initialized (current: ${this.currentFont})`);
-  }
 
   initNavigation() {
     console.log("🧭 Initializing navigation...");
@@ -958,26 +919,33 @@ class IndustrialPortfolio {
   }
 
   setFont(fontName) {
-    console.log(`🔤 Setting font to: ${fontName}`);
-
-    // Update current font
-    this.currentFont = fontName;
-
-    // Update body data attribute
-    document.body.setAttribute("data-font", fontName);
-
-    // Update active font option
-    document.querySelectorAll(".font-option").forEach((option) => {
-      option.classList.remove("active");
-      if (option.dataset.font === fontName) {
-        option.classList.add("active");
+    console.log(`🔤 Setting font via legacy method: ${fontName}`);
+    
+    // Delegate to font manager
+    if (this.fontManager) {
+      const success = this.fontManager.setFont(fontName);
+      if (success) {
+        this.currentFont = fontName;
       }
-    });
-
-    // Save to localStorage
-    localStorage.setItem("portfolio-font", fontName);
-
-    console.log(`✅ Font changed to: ${fontName}`);
+      return success;
+    } else {
+      console.warn("Font manager not initialized, falling back to legacy method");
+      
+      // Legacy fallback (for compatibility during migration)
+      this.currentFont = fontName;
+      document.body.setAttribute("data-font", fontName);
+      
+      document.querySelectorAll(".font-option").forEach((option) => {
+        option.classList.remove("active");
+        if (option.dataset.font === fontName) {
+          option.classList.add("active");
+        }
+      });
+      
+      localStorage.setItem("portfolio-font", fontName);
+      console.log(`✅ Font changed to: ${fontName} (legacy mode)`);
+      return true;
+    }
   }
 
   activatePlayerOriginSession() {
@@ -1754,16 +1722,32 @@ class IndustrialPortfolio {
   }
 
   showFontDropdown() {
-    const fontDropdown = document.getElementById("font-dropdown");
-    if (fontDropdown) {
-      fontDropdown.classList.add("show");
+    console.log("🔤 Showing font dropdown via legacy method");
+    
+    // Delegate to font manager
+    if (this.fontManager) {
+      this.fontManager.showDropdown();
+    } else {
+      // Legacy fallback
+      const fontDropdown = document.getElementById("font-dropdown");
+      if (fontDropdown) {
+        fontDropdown.classList.add("show");
+      }
     }
   }
 
   hideFontDropdown() {
-    const fontDropdown = document.getElementById("font-dropdown");
-    if (fontDropdown) {
-      fontDropdown.classList.remove("show");
+    console.log("🔤 Hiding font dropdown via legacy method");
+    
+    // Delegate to font manager
+    if (this.fontManager) {
+      this.fontManager.hideDropdown();
+    } else {
+      // Legacy fallback
+      const fontDropdown = document.getElementById("font-dropdown");
+      if (fontDropdown) {
+        fontDropdown.classList.remove("show");
+      }
     }
   }
 
