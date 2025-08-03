@@ -107,7 +107,12 @@ src/
 │   ├── components/     # Data components (Transform, Connection, Session, etc.)
 │   ├── systems/        # Logic systems (Render, Agent, Input, etc.)
 │   ├── utils/          # Utilities (EntityFactory, SystemPromptBuilder)
-│   └── app.js          # Main application controller
+│   ├── ui/             # Modular UI architecture (NEW)
+│   │   ├── components/ # UI components (ThemeManager, ChatInterface, etc.)
+│   │   ├── templates/  # Jinja2-like template system
+│   │   ├── utils/      # UI utilities (Debug, EventBus, DOMHelpers)
+│   │   └── html/       # Template definitions and builders
+│   └── app.js          # Main application controller (being refactored)
 ├── css/                # Styles and themes
 └── index.html          # Entry point
 ```
@@ -120,12 +125,17 @@ src/
 - **Advanced Session Management** - Automatic titles, keywords, and search
 - **Command System Expansion** - New slash commands for system interaction
 - **Data Persistence** - Complete IndexedDB integration with export/import
+- **Modular UI Architecture** - Complete UI refactoring with component-based design
 
 ### Architecture Improvements
 - **Dynamic Prompt Generation** - SystemPromptBuilder with template system
 - **Enhanced Brain Components** - Personality-driven AI behavior
 - **Performance Optimizations** - LOD rendering and memory management
 - **Context-Aware AI** - Real-time system state injection into prompts
+- **Template System** - Jinja2-like templating engine for clean HTML generation
+- **Component Architecture** - Modular UI components with lifecycle management
+- **Event System** - Decoupled communication between UI components
+- **Debug Infrastructure** - Comprehensive logging and development tools
 
 ## License
 

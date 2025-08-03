@@ -29,21 +29,21 @@ Incremental refactoring of 2,287-line app.js into modular UI components.
 - [x] Create template loader/cache system
 - [x] Add debug mode for template rendering
 
-### Task 1.3: Create UI Base Classes ⏳
-- [ ] `UIComponent.js` - Base class for all UI components
-- [ ] `UIManager.js` - Main UI coordinator
-- [ ] `EventBus.js` - Simple event system
-- [ ] Add debug logging framework
+### Task 1.3: Create UI Base Classes ✅
+- [x] `UIComponent.js` - Base class for all UI components
+- [x] `UIManager.js` - Main UI coordinator
+- [x] `EventBus.js` - Simple event system
+- [x] Add debug logging framework
 
 ## Phase 2: Easy Wins (Week 1-2)
 
-### Task 2.1: Extract Theme Management ⏳
-- [ ] Create `ThemeManager.js`
-- [ ] Move theme-related methods from app.js
-- [ ] Create theme template for theme switcher UI
-- [ ] Update app.js to use ThemeManager
-- [ ] Test theme switching still works
-- [ ] Add debug logging for theme changes
+### Task 2.1: Extract Theme Management ✅
+- [x] Create `ThemeManager.js`
+- [x] Move theme-related methods from app.js
+- [x] Create theme template for theme switcher UI
+- [x] Update app.js to use ThemeManager
+- [x] Test theme switching still works
+- [x] Add debug logging for theme changes
 
 ### Task 2.2: Extract Font Management ⏳
 - [ ] Create `FontManager.js`

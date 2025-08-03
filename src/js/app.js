@@ -23,6 +23,7 @@ import {
   TransformComponent,
 } from "./components/index.js";
 import { SystemPromptBuilder } from "./utils/index.js";
+import { ThemeManager, uiManager, templateRegistry } from "./ui/index.js";
 
 // Main Application Controller
 class IndustrialPortfolio {
@@ -34,6 +35,9 @@ class IndustrialPortfolio {
     this.initialized = false;
     this.world = new World();
     this.currentChatTarget = null; // Will be set to origin entity by default
+    
+    // Initialize UI manager and components
+    this.themeManager = new ThemeManager();
   }
 
   async init() {
@@ -41,7 +45,9 @@ class IndustrialPortfolio {
     console.log("🏭 Initializing...");
 
     try {
-      this.initThemeSystem();
+      // Initialize UI manager and templates
+      await this.initUI();
+      
       this.initFontSystem();
       this.initNavigation();
       this.initSidebar();
@@ -133,27 +139,25 @@ class IndustrialPortfolio {
     console.log("✅ ECS initialized");
   }
 
-  initThemeSystem() {
-    console.log("🎨 Initializing theme system...");
+  async initUI() {
+    console.log("🖼️ Initializing UI manager...");
 
-    // Set initial theme
-    const savedTheme = localStorage.getItem("portfolio-theme") || "dark";
-    this.setTheme(savedTheme);
+    // Initialize template registry
+    await templateRegistry.init();
 
-    // Setup theme button listeners
-    const themeButtons = document.querySelectorAll(".theme-btn");
-    console.log(`Found ${themeButtons.length} theme buttons`);
-
-    themeButtons.forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        const theme = btn.dataset.theme;
-        console.log(`🎨 Switching to ${theme} theme`);
-        this.setTheme(theme);
-      });
+    // Initialize UI manager
+    await uiManager.init({
+      debug: true // Enable debug mode during development
     });
 
-    console.log(`✅ Theme system initialized (current: ${this.currentTheme})`);
+    // Register and initialize theme manager
+    uiManager.register('themeManager', this.themeManager);
+    this.themeManager.init();
+
+    // Update currentTheme reference from theme manager
+    this.currentTheme = this.themeManager.getTheme();
+
+    console.log(`✅ UI manager initialized (theme: ${this.currentTheme})`);
   }
 
   initFontSystem() {
@@ -924,26 +928,33 @@ class IndustrialPortfolio {
   }
 
   setTheme(theme) {
-    console.log(`🎨 Setting theme to: ${theme}`);
-
-    // Update current theme
-    this.currentTheme = theme;
-
-    // Update body data attribute
-    document.body.setAttribute("data-theme", theme);
-
-    // Update active theme button
-    document.querySelectorAll(".theme-btn").forEach((btn) => {
-      btn.classList.remove("active");
-      if (btn.dataset.theme === theme) {
-        btn.classList.add("active");
+    console.log(`🎨 Setting theme via legacy method: ${theme}`);
+    
+    // Delegate to theme manager
+    if (this.themeManager) {
+      const success = this.themeManager.setTheme(theme);
+      if (success) {
+        this.currentTheme = theme;
       }
-    });
-
-    // Save to localStorage
-    localStorage.setItem("portfolio-theme", theme);
-
-    console.log(`✅ Theme changed to: ${theme}`);
+      return success;
+    } else {
+      console.warn("Theme manager not initialized, falling back to legacy method");
+      
+      // Legacy fallback (for compatibility during migration)
+      this.currentTheme = theme;
+      document.body.setAttribute("data-theme", theme);
+      
+      document.querySelectorAll(".theme-btn").forEach((btn) => {
+        btn.classList.remove("active");
+        if (btn.dataset.theme === theme) {
+          btn.classList.add("active");
+        }
+      });
+      
+      localStorage.setItem("portfolio-theme", theme);
+      console.log(`✅ Theme changed to: ${theme} (legacy mode)`);
+      return true;
+    }
   }
 
   setFont(fontName) {
