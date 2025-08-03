@@ -218,7 +218,8 @@ export class AgentSystem extends System {
       const response = await this.generateResponse(content, {
         model: brain.model !== 'human' ? brain.model : this.currentModel,
         entity: entity,
-        context: context
+        context: context,
+        images: context.images || []
       });
 
       // Update indicator to show success
