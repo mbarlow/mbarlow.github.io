@@ -12,12 +12,14 @@ import {
   ConnectionSystem,
   SessionSystem,
   PersistenceSystem,
+  IndicatorRenderSystem,
 } from "./systems/index.js";
 import {
   Connection,
   Session,
   ChatLog,
   BrainComponent,
+  IndicatorComponent,
 } from "./components/index.js";
 import { SystemPromptBuilder } from "./utils/index.js";
 
@@ -124,6 +126,13 @@ class IndustrialPortfolio {
     const persistenceSystem = new PersistenceSystem(this.world);
     this.world.addSystem(persistenceSystem, "persistence");
     await persistenceSystem.init();
+
+    // Add indicator render system
+    const indicatorRenderSystem = new IndicatorRenderSystem(
+      threeRender.scene,
+      cameraSystem.camera
+    );
+    this.world.addSystem(indicatorRenderSystem, "indicatorRender");
 
     // Initialize player-origin connection after level is loaded
     this.initializeDefaultConnections();
@@ -309,14 +318,82 @@ class IndustrialPortfolio {
       this.world.ensureComponent(player, Connection);
       this.world.ensureComponent(originMarker, Connection);
 
+      // Add indicator components
+      const playerIndicator = new IndicatorComponent({
+        position: { x: 0, y: 1.5, z: 0 }, // Above player
+        brightness: 0.8,
+        initialPattern: 'player',
+        state: 'idle'
+      });
+      player.addComponent(playerIndicator);
+
+      const originIndicator = new IndicatorComponent({
+        position: { x: 0, y: 1.8, z: 0 }, // Above origin marker
+        brightness: 1.0,
+        initialPattern: 'origin',
+        state: 'idle'
+      });
+      originMarker.addComponent(originIndicator);
+
+      // Set initial patterns
+      this.setPlayerIndicatorPattern(playerIndicator);
+      this.setOriginIndicatorPattern(originIndicator);
+
       // Store references for easy access
       this.playerEntity = player;
       this.originEntity = originMarker;
 
-      console.log("✅ Player and origin entities configured");
+      console.log("✅ Player and origin entities configured with indicators");
     } else {
       console.error("❌ Could not find player or origin marker entities");
     }
+  }
+
+  setPlayerIndicatorPattern(indicator) {
+    // Simple smiley face for player
+    indicator.clear();
+    
+    // Face outline (circle)
+    indicator.drawCircle(8, 8, 6, 100, 150, 255, false);
+    
+    // Eyes
+    indicator.setPixel(6, 6, 255, 255, 255);
+    indicator.setPixel(10, 6, 255, 255, 255);
+    
+    // Smile
+    indicator.setPixel(6, 10, 255, 255, 255);
+    indicator.setPixel(7, 11, 255, 255, 255);
+    indicator.setPixel(8, 11, 255, 255, 255);
+    indicator.setPixel(9, 11, 255, 255, 255);
+    indicator.setPixel(10, 10, 255, 255, 255);
+  }
+
+  setOriginIndicatorPattern(indicator) {
+    // AI-themed pattern for origin marker
+    indicator.clear();
+    
+    // Central core
+    indicator.fillRect(7, 7, 2, 2, 0, 255, 100);
+    
+    // Surrounding data points
+    const points = [
+      [3, 3], [12, 3], [3, 12], [12, 12],
+      [8, 2], [2, 8], [13, 8], [8, 13]
+    ];
+    
+    points.forEach(([x, y]) => {
+      indicator.setPixel(x, y, 0, 200, 255);
+    });
+    
+    // Connecting lines (simplified)
+    indicator.setPixel(5, 5, 0, 150, 200);
+    indicator.setPixel(6, 6, 0, 150, 200);
+    indicator.setPixel(9, 6, 0, 150, 200);
+    indicator.setPixel(10, 5, 0, 150, 200);
+    indicator.setPixel(10, 10, 0, 150, 200);
+    indicator.setPixel(9, 9, 0, 150, 200);
+    indicator.setPixel(6, 9, 0, 150, 200);
+    indicator.setPixel(5, 10, 0, 150, 200);
   }
 
   initChatInterface() {

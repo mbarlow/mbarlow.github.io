@@ -154,7 +154,7 @@ export class SessionSystem extends System {
             }
         });
 
-        // Update brain memories
+        // Update brain memories and trigger indicators
         const senderEntity = entities.find(e => e.id === senderId);
         if (senderEntity) {
             const brain = senderEntity.getComponent(BrainComponent);
@@ -166,6 +166,24 @@ export class SessionSystem extends System {
                 });
             }
         }
+
+        // Trigger notification indicators for receiving entities
+        entities.forEach(entity => {
+            if (entity.id !== senderId) {
+                const indicator = entity.getComponent('IndicatorComponent');
+                if (indicator) {
+                    // Show notification animation
+                    indicator.setState('notification');
+                    
+                    // Return to idle after notification
+                    setTimeout(() => {
+                        if (indicator.state === 'notification') {
+                            indicator.setState('idle');
+                        }
+                    }, 1200);
+                }
+            }
+        });
 
         // Update receiver memories
         const receiverEntities = entities.filter(e => e.id !== senderId);

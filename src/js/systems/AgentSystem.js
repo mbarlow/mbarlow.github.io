@@ -197,21 +197,56 @@ export class AgentSystem extends System {
       return this.generateResponse(content);
     }
 
-    // Add conversation context if enabled
-    if (brain.contextSettings.includeHistory) {
-      const sessionSystem = this.world.getSystem('session');
-      if (sessionSystem) {
-        // Get recent conversation context
-        // This would be implemented to include recent messages
-        context.recentHistory = this.getRecentConversationContext(entity, brain.contextSettings.historyLimit);
-      }
+    // Update indicator to show thinking state
+    const indicator = entity.getComponent('IndicatorComponent');
+    if (indicator) {
+      indicator.setState('thinking');
     }
 
-    return this.generateResponse(content, {
-      model: brain.model !== 'human' ? brain.model : this.currentModel,
-      entity: entity,
-      context: context
-    });
+    try {
+      // Add conversation context if enabled
+      if (brain.contextSettings.includeHistory) {
+        const sessionSystem = this.world.getSystem('session');
+        if (sessionSystem) {
+          // Get recent conversation context
+          // This would be implemented to include recent messages
+          context.recentHistory = this.getRecentConversationContext(entity, brain.contextSettings.historyLimit);
+        }
+      }
+
+      const response = await this.generateResponse(content, {
+        model: brain.model !== 'human' ? brain.model : this.currentModel,
+        entity: entity,
+        context: context
+      });
+
+      // Update indicator to show success
+      if (indicator) {
+        indicator.setState('success');
+        // Return to idle after a brief success display
+        setTimeout(() => {
+          if (indicator.state === 'success') {
+            indicator.setState('idle');
+          }
+        }, 1500);
+      }
+
+      return response;
+
+    } catch (error) {
+      // Update indicator to show error state
+      if (indicator) {
+        indicator.setState('error');
+        // Return to idle after error display
+        setTimeout(() => {
+          if (indicator.state === 'error') {
+            indicator.setState('idle');
+          }
+        }, 2000);
+      }
+      
+      throw error;
+    }
   }
 
   getRecentConversationContext(entity, limit = 5) {
