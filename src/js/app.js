@@ -355,15 +355,15 @@ class IndustrialPortfolio {
     indicator.drawCircle(8, 8, 6, 100, 150, 255, false);
     
     // Eyes
-    indicator.setPixel(6, 6, 255, 255, 255);
-    indicator.setPixel(10, 6, 255, 255, 255);
+    indicator.setPixel(6, 10, 255, 255, 255);
+    indicator.setPixel(10, 10, 255, 255, 255);
     
     // Smile
-    indicator.setPixel(6, 10, 255, 255, 255);
-    indicator.setPixel(7, 11, 255, 255, 255);
-    indicator.setPixel(8, 11, 255, 255, 255);
-    indicator.setPixel(9, 11, 255, 255, 255);
-    indicator.setPixel(10, 10, 255, 255, 255);
+    indicator.setPixel(6, 6, 255, 255, 255);
+    indicator.setPixel(7, 5, 255, 255, 255);
+    indicator.setPixel(8, 5, 255, 255, 255);
+    indicator.setPixel(9, 5, 255, 255, 255);
+    indicator.setPixel(10, 6, 255, 255, 255);
   }
 
   setOriginIndicatorPattern(indicator) {

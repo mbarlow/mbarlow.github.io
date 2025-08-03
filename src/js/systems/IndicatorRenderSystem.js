@@ -216,15 +216,14 @@ export class IndicatorRenderSystem extends System {
         // Update scale
         mesh.scale.setScalar(indicator.scale);
         
-        // Update visibility
-        const targetOpacity = indicator.visible ? 1.0 : 0.0;
-        mesh.material.uniforms.opacity.value = targetOpacity;
+        // Update visibility and opacity
+        mesh.material.uniforms.opacity.value = indicator.getOpacity();
         
         // Update brightness
         mesh.material.uniforms.brightness.value = indicator.brightness;
         
         // Update texture if needed
-        if (indicator.update()) {
+        if (indicator.update(deltaTime)) {
             // Convert RGB to RGBA
             const rgbData = indicator.getRenderData();
             const rgbaData = mesh.userData.texture.image.data;

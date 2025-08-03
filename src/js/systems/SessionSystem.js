@@ -3,6 +3,7 @@ import { Connection } from '../components/Connection.js';
 import { Session } from '../components/Session.js';
 import { ChatLog } from '../components/ChatLog.js';
 import { BrainComponent } from '../components/BrainComponent.js';
+import { IndicatorComponent } from '../components/IndicatorComponent.js';
 
 export class SessionSystem extends System {
     constructor(world) {
@@ -170,7 +171,7 @@ export class SessionSystem extends System {
         // Trigger notification indicators for receiving entities
         entities.forEach(entity => {
             if (entity.id !== senderId) {
-                const indicator = entity.getComponent('IndicatorComponent');
+                const indicator = entity.getComponent(IndicatorComponent);
                 if (indicator) {
                     // Show notification animation
                     indicator.setState('notification');
