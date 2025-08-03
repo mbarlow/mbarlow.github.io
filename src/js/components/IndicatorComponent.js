@@ -42,6 +42,13 @@ export class IndicatorComponent extends Component {
         this.lastState = 'idle';
         this.stateChangeTime = 0;
         
+        // Auto-hide settings
+        this.autoHide = config.autoHide !== false; // Default to true
+        this.idleDuration = config.idleDuration || 5000; // Hide after 5 seconds idle
+        this.fadeOutDuration = config.fadeOutDuration || 1000; // 1 second fade
+        this.baseOpacity = 1.0;
+        this.targetOpacity = 1.0;
+        
         // Performance settings
         this.updateRate = config.updateRate || 60; // FPS for animations
         this.lastUpdate = 0;
@@ -358,6 +365,33 @@ export class IndicatorComponent extends Component {
             this.needsUpdate = true;
         }
         
+        // Handle auto-hide when idle
+        if (this.autoHide && this.state === 'idle') {
+            const idleTime = now - this.stateChangeTime;
+            
+            if (idleTime > this.idleDuration) {
+                // Start fading out
+                this.targetOpacity = 0.0;
+            } else {
+                // Ensure we're visible when not idle long enough
+                this.targetOpacity = 1.0;
+            }
+        } else {
+            // Always visible when not idle
+            this.targetOpacity = 1.0;
+        }
+        
+        // Update opacity transition
+        if (Math.abs(this.baseOpacity - this.targetOpacity) > 0.01) {
+            const fadeSpeed = deltaTime / this.fadeOutDuration;
+            if (this.baseOpacity < this.targetOpacity) {
+                this.baseOpacity = Math.min(this.targetOpacity, this.baseOpacity + fadeSpeed);
+            } else {
+                this.baseOpacity = Math.max(this.targetOpacity, this.baseOpacity - fadeSpeed);
+            }
+            this.needsUpdate = true;
+        }
+        
         // Apply visual effects
         if (this.needsUpdate) {
             this.applyEffects();
@@ -392,6 +426,13 @@ export class IndicatorComponent extends Component {
     }
 
     /**
+     * Get current opacity for rendering
+     */
+    getOpacity() {
+        return this.visible ? this.baseOpacity : 0.0;
+    }
+    
+    /**
      * Get display info for debugging
      */
     getInfo() {
@@ -400,6 +441,7 @@ export class IndicatorComponent extends Component {
             state: this.state,
             visible: this.visible,
             brightness: this.brightness,
+            opacity: this.baseOpacity,
             isTransitioning: this.isTransitioning,
             animationActive: !!this.currentAnimation
         };
