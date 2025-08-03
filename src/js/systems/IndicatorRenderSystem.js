@@ -118,12 +118,23 @@ export class IndicatorRenderSystem extends System {
     createIndicatorMesh(entity, indicatorComponent) {
         const size = indicatorComponent.size;
         
+        // Convert RGB data to RGBA for Three.js
+        const rgbData = indicatorComponent.getRenderData();
+        const rgbaData = new Uint8Array(size.width * size.height * 4);
+        
+        for (let i = 0; i < size.width * size.height; i++) {
+            rgbaData[i * 4] = rgbData[i * 3];        // R
+            rgbaData[i * 4 + 1] = rgbData[i * 3 + 1]; // G
+            rgbaData[i * 4 + 2] = rgbData[i * 3 + 2]; // B
+            rgbaData[i * 4 + 3] = 255;                // A (full opacity)
+        }
+        
         // Create DataTexture for the indicator
         const texture = new THREE.DataTexture(
-            indicatorComponent.getRenderData(),
+            rgbaData,
             size.width,
             size.height,
-            THREE.RGBFormat,
+            THREE.RGBAFormat,
             THREE.UnsignedByteType
         );
         
@@ -214,7 +225,18 @@ export class IndicatorRenderSystem extends System {
         
         // Update texture if needed
         if (indicator.update()) {
-            mesh.userData.texture.image.data = indicator.getRenderData();
+            // Convert RGB to RGBA
+            const rgbData = indicator.getRenderData();
+            const rgbaData = mesh.userData.texture.image.data;
+            const size = indicator.size;
+            
+            for (let i = 0; i < size.width * size.height; i++) {
+                rgbaData[i * 4] = rgbData[i * 3];        // R
+                rgbaData[i * 4 + 1] = rgbData[i * 3 + 1]; // G
+                rgbaData[i * 4 + 2] = rgbData[i * 3 + 2]; // B
+                rgbaData[i * 4 + 3] = 255;                // A
+            }
+            
             mesh.userData.texture.needsUpdate = true;
         }
     }
@@ -301,7 +323,18 @@ export class IndicatorRenderSystem extends System {
         if (mesh) {
             const indicator = entity.getComponent(IndicatorComponent);
             if (indicator) {
-                mesh.userData.texture.image.data = indicator.getRenderData();
+                // Convert RGB to RGBA
+                const rgbData = indicator.getRenderData();
+                const rgbaData = mesh.userData.texture.image.data;
+                const size = indicator.size;
+                
+                for (let i = 0; i < size.width * size.height; i++) {
+                    rgbaData[i * 4] = rgbData[i * 3];        // R
+                    rgbaData[i * 4 + 1] = rgbData[i * 3 + 1]; // G
+                    rgbaData[i * 4 + 2] = rgbData[i * 3 + 2]; // B
+                    rgbaData[i * 4 + 3] = 255;                // A
+                }
+                
                 mesh.userData.texture.needsUpdate = true;
             }
         }

@@ -322,7 +322,6 @@ class IndustrialPortfolio {
       const playerIndicator = new IndicatorComponent({
         position: { x: 0, y: 1.5, z: 0 }, // Above player
         brightness: 0.8,
-        initialPattern: 'player',
         state: 'idle'
       });
       player.addComponent(playerIndicator);
@@ -330,12 +329,11 @@ class IndustrialPortfolio {
       const originIndicator = new IndicatorComponent({
         position: { x: 0, y: 1.8, z: 0 }, // Above origin marker
         brightness: 1.0,
-        initialPattern: 'origin',
         state: 'idle'
       });
       originMarker.addComponent(originIndicator);
 
-      // Set initial patterns
+      // Set initial patterns after components are added
       this.setPlayerIndicatorPattern(playerIndicator);
       this.setOriginIndicatorPattern(originIndicator);
 
