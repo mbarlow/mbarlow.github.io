@@ -130,7 +130,7 @@ export class SessionSystem extends System {
         });
     }
 
-    sendMessage(sessionId, senderId, content, type = 'user') {
+    sendMessage(sessionId, senderId, content, type = 'user', options = {}) {
         const sessionData = this.sessions.get(sessionId);
         if (!sessionData) return null;
 
@@ -140,11 +140,13 @@ export class SessionSystem extends System {
         const chatLogComp = entities[0].getComponent(ChatLog);
         if (!chatLogComp) return null;
 
-        // Add message to log
+        // Add message to log with optional images
         const message = chatLogComp.addMessage(session.chatLogId, {
             senderId,
             content,
-            type
+            type,
+            images: options.images || [],
+            metadata: options.metadata || {}
         });
 
         // Update session

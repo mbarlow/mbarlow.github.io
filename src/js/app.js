@@ -46,6 +46,7 @@ class IndustrialPortfolio {
       this.initNavigation();
       this.initSidebar();
       this.initChatInterface();
+      this.initSessionsList();
       await this.initECS();
       this.initialized = true;
       console.log("✅ Industrial Portfolio initialized successfully");
@@ -420,6 +421,257 @@ class IndustrialPortfolio {
     console.log("✅ Chat interface initialized");
   }
 
+  initSessionsList() {
+    console.log("💬 Initializing sessions list...");
+    
+    const refreshBtn = document.getElementById("refresh-sessions");
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => {
+        this.loadSessionsList();
+      });
+    }
+
+    // Load sessions after a short delay to ensure systems are ready
+    setTimeout(() => {
+      this.loadSessionsList();
+    }, 1000);
+    
+    console.log("✅ Sessions list initialized");
+  }
+
+  async loadSessionsList() {
+    const sessionsList = document.getElementById("sessions-list");
+    const sessionsLoading = document.getElementById("sessions-loading");
+    
+    if (!sessionsList) {
+      console.warn("Sessions list element not found");
+      return;
+    }
+
+    // Show loading state
+    if (sessionsLoading) {
+      sessionsLoading.style.display = "flex";
+    }
+
+    try {
+      const persistenceSystem = this.world.getSystem("persistence");
+      console.log("PersistenceSystem:", persistenceSystem);
+      
+      if (!persistenceSystem) {
+        this.showSessionsError("Session system not available");
+        return;
+      }
+
+      if (!persistenceSystem.initialized) {
+        console.log("PersistenceSystem not yet initialized, retrying...");
+        setTimeout(() => this.loadSessionsList(), 2000);
+        return;
+      }
+
+      console.log("Loading sessions from storage...");
+      const sessions = await persistenceSystem.storage.getAllSessions();
+      console.log("Loaded sessions:", sessions.length);
+      
+      if (!sessions || sessions.length === 0) {
+        this.renderSessionsList([]);
+        return;
+      }
+
+      // Sort by last activity and take top 15
+      const recentSessions = sessions
+        .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
+        .slice(0, 15);
+
+      console.log("Rendering", recentSessions.length, "recent sessions");
+      await this.renderSessionsList(recentSessions);
+
+    } catch (error) {
+      console.error("Failed to load sessions:", error);
+      this.showSessionsError(`Failed to load sessions: ${error.message}`);
+    }
+  }
+
+  async renderSessionsList(sessions) {
+    const sessionsList = document.getElementById("sessions-list");
+    const sessionsLoading = document.getElementById("sessions-loading");
+    
+    if (!sessionsList) return;
+
+    // Hide loading
+    if (sessionsLoading) {
+      sessionsLoading.style.display = "none";
+    }
+
+    // Clear existing sessions
+    sessionsList.innerHTML = "";
+
+    if (sessions.length === 0) {
+      sessionsList.innerHTML = `
+        <div class="sessions-loading">
+          <span>No sessions found</span>
+        </div>
+      `;
+      return;
+    }
+
+    // Create session items
+    for (const session of sessions) {
+      const sessionItem = await this.createSessionItem(session);
+      sessionsList.appendChild(sessionItem);
+    }
+  }
+
+  async createSessionItem(session) {
+    const div = document.createElement("div");
+    div.className = "session-item";
+    div.dataset.sessionId = session.id;
+
+    // Get participant names
+    const participantNames = await this.getParticipantNames(session.participants);
+    const participantList = participantNames.slice(0, 2).join(", ");
+    const hasMore = participantNames.length > 2;
+    
+    // Format time
+    const timeAgo = this.getTimeAgo(session.lastActivityAt);
+    
+    // Check if this is the active session
+    const isActive = this.isActiveSession(session.id);
+    if (isActive) {
+      div.classList.add("active");
+    }
+
+    div.innerHTML = `
+      <div class="session-content">
+        <div class="session-title">${session.title || "Untitled Session"}</div>
+        <div class="session-meta">
+          <span>${timeAgo}</span>
+          <span>•</span>
+          <span>${session.messageCount} msg</span>
+          <div class="session-participants">
+            ${participantNames.map(() => '<div class="participant-indicator"></div>').join('')}
+          </div>
+          ${hasMore ? `<span>+${participantNames.length - 2}</span>` : ''}
+        </div>
+      </div>
+      <button class="session-menu-btn" title="Session Options">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="1"/>
+          <circle cx="12" cy="5" r="1"/>
+          <circle cx="12" cy="19" r="1"/>
+        </svg>
+      </button>
+    `;
+
+    // Add click handler to switch to this session
+    div.addEventListener("click", (e) => {
+      if (!e.target.closest(".session-menu-btn")) {
+        this.switchToSession(session);
+      }
+    });
+
+    // Add menu button handler
+    const menuBtn = div.querySelector(".session-menu-btn");
+    if (menuBtn) {
+      menuBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.showSessionMenu(session, menuBtn);
+      });
+    }
+
+    return div;
+  }
+
+  isActiveSession(sessionId) {
+    // Check if this session is currently active
+    const sessionSystem = this.world.getSystem("session");
+    if (!sessionSystem || !this.playerEntity) return false;
+    
+    try {
+      const existingSessions = sessionSystem.getSessionHistory(this.playerEntity);
+      const activeSession = existingSessions.find(
+        (s) => s && s.state === "active"
+      );
+      
+      return activeSession && activeSession.id === sessionId;
+    } catch (error) {
+      console.warn("Error checking active session:", error);
+      return false;
+    }
+  }
+
+  async switchToSession(session) {
+    console.log("Switching to session:", session.id);
+    
+    // Find the target entity for this session
+    const targetId = session.participants.find(id => id !== this.playerEntity?.id);
+    if (!targetId) return;
+
+    const targetEntity = this.world.getEntity(targetId);
+    if (!targetEntity) return;
+
+    // Switch chat target
+    this.currentChatTarget = targetEntity;
+    
+    // Update active session in UI
+    this.updateActiveSessionUI(session.id);
+    
+    // Show confirmation
+    const brain = targetEntity.getComponent("BrainComponent");
+    const entityName = targetEntity.tag || "Entity";
+    const personality = brain?.personality ? ` (${brain.personality})` : "";
+    
+    this.addMessage("system", `📱 Switched to session with ${entityName}${personality}`);
+  }
+
+  updateActiveSessionUI(activeSessionId) {
+    // Update session list UI to show active session
+    const sessionItems = document.querySelectorAll(".session-item");
+    sessionItems.forEach(item => {
+      if (item.dataset.sessionId === activeSessionId) {
+        item.classList.add("active");
+      } else {
+        item.classList.remove("active");
+      }
+    });
+  }
+
+  showSessionMenu(session, menuBtn) {
+    // TODO: Implement session context menu
+    console.log("Show menu for session:", session.id);
+    // This will be implemented in the next task (rename/delete controls)
+  }
+
+  getTimeAgo(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (minutes < 1) return "now";
+    if (minutes < 60) return `${minutes}m`;
+    if (hours < 24) return `${hours}h`;
+    if (days < 7) return `${days}d`;
+    return new Date(timestamp).toLocaleDateString();
+  }
+
+  showSessionsError(message) {
+    const sessionsList = document.getElementById("sessions-list");
+    const sessionsLoading = document.getElementById("sessions-loading");
+    
+    if (sessionsLoading) {
+      sessionsLoading.style.display = "none";
+    }
+    
+    if (sessionsList) {
+      sessionsList.innerHTML = `
+        <div class="sessions-loading">
+          <span style="color: var(--text-muted);">${message}</span>
+        </div>
+      `;
+    }
+  }
+
   setTheme(theme) {
     console.log(`🎨 Setting theme to: ${theme}`);
 
@@ -583,28 +835,81 @@ class IndustrialPortfolio {
     }
 
     try {
-      const history = await persistenceSystem.getSessionHistory(10);
-
-      if (history.length === 0) {
+      const sessions = await persistenceSystem.storage.getAllSessions();
+      
+      if (sessions.length === 0) {
         this.addMessage("assistant", "No session history found.");
         return;
       }
 
+      // Sort by last activity and take top 10
+      const recentSessions = sessions
+        .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
+        .slice(0, 10);
+
       let response = "Recent session history:\n\n";
-      history.forEach((session, index) => {
-        response += `${index + 1}. ${session.title} (${session.lastActivity})\n`;
-        response += `   ${session.messageCount} messages, ${session.participants} participants\n`;
-        if (session.keywords?.length > 0) {
-          response += `   Keywords: ${session.keywords.join(", ")}\n`;
+      
+      for (let i = 0; i < recentSessions.length; i++) {
+        const session = recentSessions[i];
+        const index = i + 1;
+        
+        // Get participant names
+        const participantNames = await this.getParticipantNames(session.participants);
+        
+        // Get chat log to check for images
+        const chatLog = await persistenceSystem.storage.loadChatLog(session.chatLogId);
+        const imageCount = this.countImagesInChatLog(chatLog);
+        
+        response += `${index}. **${session.title || 'Untitled Session'}** (${new Date(session.lastActivityAt).toLocaleString()})\n`;
+        response += `   📝 ${session.messageCount} messages | 👥 ${participantNames.join(', ')}\n`;
+        
+        if (imageCount > 0) {
+          response += `   🖼️ ${imageCount} image${imageCount > 1 ? 's' : ''}\n`;
         }
+        
+        if (session.keywords?.length > 0) {
+          response += `   🏷️ ${session.keywords.join(', ')}\n`;
+        }
+        
         response += "\n";
-      });
+      }
 
       this.addMessage("assistant", response);
     } catch (error) {
       this.addMessage("assistant", "Failed to load history. Please try again.");
       console.error("History error:", error);
     }
+  }
+
+  async getParticipantNames(participantIds) {
+    const names = [];
+    
+    for (const entityId of participantIds) {
+      const entity = this.world.getEntity(entityId);
+      if (entity) {
+        // Get entity name from tag or brain component
+        let name = entity.tag || `Entity ${entityId}`;
+        
+        const brain = entity.getComponent("BrainComponent");
+        if (brain && brain.personality) {
+          name = `${name} (${brain.personality})`;
+        }
+        
+        names.push(name);
+      } else {
+        names.push(`Entity ${entityId}`);
+      }
+    }
+    
+    return names;
+  }
+
+  countImagesInChatLog(chatLog) {
+    if (!chatLog || !chatLog.messages) return 0;
+    
+    return chatLog.messages.filter(message => 
+      message.images && message.images.length > 0
+    ).length;
   }
 
   async handleSaveCommand() {
@@ -1314,12 +1619,13 @@ class IndustrialPortfolio {
     const agentSystem = this.world.getSystem("agent");
 
     if (sessionSystem && this.playerEntity && this.currentChatTarget) {
-      // Add user message to session
+      // Add user message to session with images
       sessionSystem.sendMessage(
         session.id,
         this.playerEntity.id,
         message,
         "user",
+        { images: images }
       );
 
       // Display user message
@@ -1344,6 +1650,9 @@ class IndustrialPortfolio {
 
         // Display AI response
         this.addMessage("assistant", response);
+        
+        // Refresh sessions list to show updated activity
+        this.loadSessionsList();
       } else {
         // Fallback response
         const fallbackResponse =
@@ -1538,6 +1847,12 @@ class IndustrialPortfolio {
     return this.world.getSystem("input");
   }
 
+  // Debug method to manually refresh sessions
+  debugRefreshSessions() {
+    console.log("🔄 Manually refreshing sessions...");
+    this.loadSessionsList();
+  }
+
   // Cleanup
   destroy() {
     if (this.world) {
@@ -1684,6 +1999,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     } else {
       console.error("Origin entity not found");
+    }
+  };
+
+  // Debug functions for session management
+  window.debugRefreshSessions = () => {
+    console.log("🔄 Manually refreshing sessions...");
+    window.industrialPortfolio.debugRefreshSessions();
+  };
+
+  window.debugSessions = async () => {
+    console.log("🔍 Debugging sessions...");
+    const persistenceSystem = window.industrialPortfolio.world.getSystem("persistence");
+    if (persistenceSystem) {
+      console.log("PersistenceSystem initialized:", persistenceSystem.initialized);
+      if (persistenceSystem.initialized) {
+        try {
+          const sessions = await persistenceSystem.storage.getAllSessions();
+          console.log("Raw sessions:", sessions);
+          return sessions;
+        } catch (error) {
+          console.error("Error getting sessions:", error);
+        }
+      }
+    } else {
+      console.log("No persistence system found");
     }
   };
 });
