@@ -37,28 +37,15 @@ class IndustrialPortfolio {
 
   async init() {
     if (this.initialized) return;
-
     console.log("🏭 Initializing...");
 
     try {
-      // Initialize theme system
       this.initThemeSystem();
-
-      // Initialize font system
       this.initFontSystem();
-
-      // Initialize navigation
       this.initNavigation();
-
-      // Initialize sidebar
       this.initSidebar();
-
-      // Initialize chat interface
       this.initChatInterface();
-
-      // Initialize ECS
       await this.initECS();
-
       this.initialized = true;
       console.log("✅ Industrial Portfolio initialized successfully");
     } catch (error) {
@@ -131,7 +118,7 @@ class IndustrialPortfolio {
     // Add 3D voxel indicator render system
     const voxelIndicatorRenderSystem = new VoxelIndicatorRenderSystem(
       threeRender.scene,
-      cameraSystem.getActiveCamera()?.camera // Get the Three.js camera from active CameraComponent
+      cameraSystem.getActiveCamera()?.camera, // Get the Three.js camera from active CameraComponent
     );
     this.world.addSystem(voxelIndicatorRenderSystem, "voxelIndicatorRender");
 
@@ -323,16 +310,16 @@ class IndustrialPortfolio {
       const playerIndicator = new VoxelIndicatorComponent({
         position: { x: 0, y: 1.2, z: 0 }, // Above player, closer due to smaller size
         brightness: 0.8,
-        state: 'idle',
-        gridSize: { width: 8, height: 8, depth: 1 } // 8x8 grid as requested
+        state: "idle",
+        gridSize: { width: 8, height: 8, depth: 1 }, // 8x8 grid as requested
       });
       player.addComponent(playerIndicator);
 
       const originIndicator = new VoxelIndicatorComponent({
         position: { x: 0, y: 1.3, z: 0 }, // Above origin marker
         brightness: 1.0,
-        state: 'idle',
-        gridSize: { width: 8, height: 8, depth: 1 }
+        state: "idle",
+        gridSize: { width: 8, height: 8, depth: 1 },
       });
       originMarker.addComponent(originIndicator);
 
@@ -352,12 +339,12 @@ class IndustrialPortfolio {
 
   setPlayerIndicatorPattern(indicator) {
     // Create a simple smiley pattern for voxel indicator
-    indicator.createPattern('smiley');
+    indicator.createPattern("smiley");
   }
 
   setOriginIndicatorPattern(indicator) {
     // Create AI-themed pattern for origin marker
-    indicator.createPattern('idle');
+    indicator.createPattern("idle");
   }
 
   initChatInterface() {
@@ -755,23 +742,23 @@ class IndustrialPortfolio {
       this.addMessage(
         "assistant",
         `**Delete Command Usage:**\n\n` +
-        `\`/delete help\` - Show this help\n` +
-        `\`/delete current\` - Delete current active session\n` +
-        `\`/delete <id>\` - Delete session by ID\n` +
-        `\`/delete range <start> <end>\` - Delete sessions by index range (from /history list)\n` +
-        `\`/delete all\` - Delete ALL sessions for this connection (⚠️ PERMANENT)\n` +
-        `\`/delete old <days>\` - Delete sessions older than X days\n\n` +
-        `**Examples:**\n` +
-        `\`/delete current\` - Delete the current session\n` +
-        `\`/delete range 1 5\` - Delete sessions 1-5 from history list\n` +
-        `\`/delete old 30\` - Delete sessions older than 30 days`
+          `\`/delete help\` - Show this help\n` +
+          `\`/delete current\` - Delete current active session\n` +
+          `\`/delete <id>\` - Delete session by ID\n` +
+          `\`/delete range <start> <end>\` - Delete sessions by index range (from /history list)\n` +
+          `\`/delete all\` - Delete ALL sessions for this connection (⚠️ PERMANENT)\n` +
+          `\`/delete old <days>\` - Delete sessions older than X days\n\n` +
+          `**Examples:**\n` +
+          `\`/delete current\` - Delete the current session\n` +
+          `\`/delete range 1 5\` - Delete sessions 1-5 from history list\n` +
+          `\`/delete old 30\` - Delete sessions older than 30 days`,
       );
       return;
     }
 
     const persistenceSystem = this.world.getSystem("persistence");
     const sessionSystem = this.world.getSystem("session");
-    
+
     if (!persistenceSystem || !sessionSystem) {
       this.addMessage("assistant", "❌ Session management not available.");
       return;
@@ -783,8 +770,14 @@ class IndustrialPortfolio {
 
       switch (subCommand) {
         case "current":
-          deletedCount = await this.deleteCurrentSession(sessionSystem, persistenceSystem);
-          response = deletedCount > 0 ? "✅ Current session deleted." : "❌ No active session to delete.";
+          deletedCount = await this.deleteCurrentSession(
+            sessionSystem,
+            persistenceSystem,
+          );
+          response =
+            deletedCount > 0
+              ? "✅ Current session deleted."
+              : "❌ No active session to delete.";
           break;
 
         case "all":
@@ -798,7 +791,11 @@ class IndustrialPortfolio {
           if (isNaN(startIdx) || isNaN(endIdx)) {
             response = "❌ Invalid range. Use: /delete range <start> <end>";
           } else {
-            deletedCount = await this.deleteSessionRange(persistenceSystem, startIdx, endIdx);
+            deletedCount = await this.deleteSessionRange(
+              persistenceSystem,
+              startIdx,
+              endIdx,
+            );
             response = `✅ Deleted ${deletedCount} sessions from range ${startIdx}-${endIdx}.`;
           }
           break;
@@ -808,7 +805,10 @@ class IndustrialPortfolio {
           if (isNaN(days) || days < 1) {
             response = "❌ Invalid days. Use: /delete old <days>";
           } else {
-            deletedCount = await this.deleteOldSessions(persistenceSystem, days);
+            deletedCount = await this.deleteOldSessions(
+              persistenceSystem,
+              days,
+            );
             response = `✅ Deleted ${deletedCount} sessions older than ${days} days.`;
           }
           break;
@@ -819,15 +819,23 @@ class IndustrialPortfolio {
           const rangeEnd = parseInt(parts[2]);
           if (!isNaN(rangeStart) && !isNaN(rangeEnd)) {
             // Handle as range command
-            deletedCount = await this.deleteSessionRange(persistenceSystem, rangeStart, rangeEnd);
+            deletedCount = await this.deleteSessionRange(
+              persistenceSystem,
+              rangeStart,
+              rangeEnd,
+            );
             response = `✅ Deleted ${deletedCount} sessions from range ${rangeStart}-${rangeEnd}.`;
           } else {
             // Try to delete by session ID
             const sessionId = parts[1];
-            deletedCount = await this.deleteSessionById(persistenceSystem, sessionId);
-            response = deletedCount > 0 ? 
-              `✅ Deleted session ${sessionId}.` : 
-              `❌ Session ${sessionId} not found.`;
+            deletedCount = await this.deleteSessionById(
+              persistenceSystem,
+              sessionId,
+            );
+            response =
+              deletedCount > 0
+                ? `✅ Deleted session ${sessionId}.`
+                : `❌ Session ${sessionId} not found.`;
           }
           break;
       }
@@ -838,7 +846,6 @@ class IndustrialPortfolio {
       if (deletedCount > 0) {
         await persistenceSystem.forceSave();
       }
-
     } catch (error) {
       console.error("Delete command error:", error);
       this.addMessage("assistant", `❌ Delete failed: ${error.message}`);
@@ -846,7 +853,10 @@ class IndustrialPortfolio {
   }
 
   async deleteCurrentSession(sessionSystem, persistenceSystem) {
-    const activeSession = sessionSystem.getActiveSession(this.playerEntity, this.originEntity);
+    const activeSession = sessionSystem.getActiveSession(
+      this.playerEntity,
+      this.originEntity,
+    );
     if (!activeSession) return 0;
 
     // Delete session and associated data
@@ -854,35 +864,39 @@ class IndustrialPortfolio {
     if (activeSession.chatLogId) {
       await persistenceSystem.storage.deleteChatLog(activeSession.chatLogId);
     }
-    
+
     // Clear active session
     sessionSystem.endSession(this.playerEntity, this.originEntity);
-    
+
     return 1;
   }
 
   async deleteAllSessions(persistenceSystem) {
     const sessions = await persistenceSystem.storage.getAllSessions();
     const count = sessions.length;
-    
+
     for (const session of sessions) {
       await persistenceSystem.storage.deleteSession(session.id);
       if (session.chatLogId) {
         await persistenceSystem.storage.deleteChatLog(session.chatLogId);
       }
     }
-    
+
     return count;
   }
 
   async deleteSessionRange(persistenceSystem, startIdx, endIdx) {
     const sessions = await persistenceSystem.storage.getAllSessions();
-    const sortedSessions = sessions.sort((a, b) => 
-      new Date(b.lastActivityAt) - new Date(a.lastActivityAt)
+    const sortedSessions = sessions.sort(
+      (a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt),
     );
 
     let deletedCount = 0;
-    for (let i = startIdx - 1; i < Math.min(endIdx, sortedSessions.length); i++) {
+    for (
+      let i = startIdx - 1;
+      i < Math.min(endIdx, sortedSessions.length);
+      i++
+    ) {
       if (i >= 0 && sortedSessions[i]) {
         const session = sortedSessions[i];
         // Delete session and associated data
@@ -910,15 +924,15 @@ class IndustrialPortfolio {
       }
       return 0;
     } catch (error) {
-      console.error('Error deleting session:', error);
+      console.error("Error deleting session:", error);
       return 0;
     }
   }
 
   async deleteOldSessions(persistenceSystem, days) {
-    const cutoffDate = new Date(Date.now() - (days * 24 * 60 * 60 * 1000));
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const sessions = await persistenceSystem.storage.getAllSessions();
-    
+
     let deletedCount = 0;
     for (const session of sessions) {
       if (new Date(session.lastActivityAt) < cutoffDate) {
@@ -936,20 +950,26 @@ class IndustrialPortfolio {
   async handleGenerateTitlesCommand() {
     const persistenceSystem = this.world.getSystem("persistence");
     const agentSystem = this.world.getSystem("agent");
-    
+
     if (!persistenceSystem || !agentSystem) {
       this.addMessage("assistant", "❌ Required systems not available.");
       return;
     }
 
     if (!agentSystem.isConnected) {
-      this.addMessage("assistant", "❌ LLM not connected. Cannot generate titles.");
+      this.addMessage(
+        "assistant",
+        "❌ LLM not connected. Cannot generate titles.",
+      );
       return;
     }
 
     try {
-      this.addMessage("assistant", "🤖 Generating titles for untitled sessions...");
-      
+      this.addMessage(
+        "assistant",
+        "🤖 Generating titles for untitled sessions...",
+      );
+
       const sessions = await persistenceSystem.storage.getAllSessions();
       let generatedCount = 0;
       let processedCount = 0;
@@ -961,60 +981,75 @@ class IndustrialPortfolio {
         }
 
         processedCount++;
-        
+
         try {
           // Get chat messages for this session by loading the chat log
-          const chatLog = await persistenceSystem.storage.loadChatLog(session.chatLogId);
-          if (!chatLog || !chatLog.messages || chatLog.messages.length < 3) continue;
+          const chatLog = await persistenceSystem.storage.loadChatLog(
+            session.chatLogId,
+          );
+          if (!chatLog || !chatLog.messages || chatLog.messages.length < 3)
+            continue;
 
           // Create context from first few messages
-          const context = chatLog.messages.slice(0, 6).map(m => 
-            `${m.sender}: ${m.content}`
-          ).join('\n');
+          const context = chatLog.messages
+            .slice(0, 6)
+            .map((m) => `${m.sender}: ${m.content}`)
+            .join("\n");
 
           // Generate title
           const prompt = `Summarize this conversation in one short sentence (max 8 words):\n${context}`;
           const title = await agentSystem.generateResponse(prompt, {
-            temperature: 0.3
+            temperature: 0.3,
           });
 
           // Generate keywords
           const keywordPrompt = `List 3-5 keywords from this conversation (comma separated):\n${context}`;
-          const keywordsResponse = await agentSystem.generateResponse(keywordPrompt, {
-            temperature: 0.3
-          });
-          const keywords = keywordsResponse.split(',').map(k => k.trim()).filter(k => k);
+          const keywordsResponse = await agentSystem.generateResponse(
+            keywordPrompt,
+            {
+              temperature: 0.3,
+            },
+          );
+          const keywords = keywordsResponse
+            .split(",")
+            .map((k) => k.trim())
+            .filter((k) => k);
 
           // Update session
           session.title = title.trim();
           session.keywords = keywords;
-          
+
           // Save the updated session
           await persistenceSystem.storage.saveSession(session);
-          
+
           generatedCount++;
 
           console.log(`✅ Generated title for ${session.id}: ${title.trim()}`);
 
           // Add small delay to avoid overwhelming the LLM
-          await new Promise(resolve => setTimeout(resolve, 100));
-
+          await new Promise((resolve) => setTimeout(resolve, 100));
         } catch (error) {
-          console.warn(`Failed to generate title for session ${session.id}:`, error);
+          console.warn(
+            `Failed to generate title for session ${session.id}:`,
+            error,
+          );
         }
       }
-      
-      this.addMessage("assistant", 
-        `✅ Title generation complete!\n` +
-        `- Processed: ${processedCount} sessions\n` +
-        `- Generated: ${generatedCount} new titles\n` +
-        `- Skipped: ${processedCount - generatedCount} sessions (errors or already titled)\n\n` +
-        `Use \`/history\` to see the updated titles.`
-      );
 
+      this.addMessage(
+        "assistant",
+        `✅ Title generation complete!\n` +
+          `- Processed: ${processedCount} sessions\n` +
+          `- Generated: ${generatedCount} new titles\n` +
+          `- Skipped: ${processedCount - generatedCount} sessions (errors or already titled)\n\n` +
+          `Use \`/history\` to see the updated titles.`,
+      );
     } catch (error) {
       console.error("Title generation error:", error);
-      this.addMessage("assistant", `❌ Title generation failed: ${error.message}`);
+      this.addMessage(
+        "assistant",
+        `❌ Title generation failed: ${error.message}`,
+      );
     }
   }
 
@@ -1399,108 +1434,121 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log(
     "  - Type 'window.industrialPortfolio.getInputSystem().debugKeyStates()' to see key states",
   );
-  
+
   // Add test function for debugging animations
-  window.testIndicatorAnimation = (state = 'thinking') => {
+  window.testIndicatorAnimation = (state = "thinking") => {
     console.log(`Testing ${state} animation...`);
-    
+
     const world = window.industrialPortfolio.world;
     if (!world) {
-      console.error('World not found');
+      console.error("World not found");
       return;
     }
-    
+
     const entities = Array.from(world.entities.values());
-    const originEntity = entities.find(e => e.getComponent('BrainComponent'));
-    
+    const originEntity = entities.find((e) => e.getComponent("BrainComponent"));
+
     if (originEntity) {
       const indicator = originEntity.getComponent(VoxelIndicatorComponent);
       if (indicator) {
-        console.log('Found indicator, current state:', indicator.state);
-        console.log('Setting state to:', state);
+        console.log("Found indicator, current state:", indicator.state);
+        console.log("Setting state to:", state);
         indicator.setState(state);
-        
+
         // Check animation after a moment
         setTimeout(() => {
-          console.log('Animation info:', indicator.getInfo());
-          console.log('Animation manager active:', indicator.animationManager?.hasActiveAnimation());
-          console.log('Current animation:', indicator.animationManager.currentAnimation);
+          console.log("Animation info:", indicator.getInfo());
+          console.log(
+            "Animation manager active:",
+            indicator.animationManager?.hasActiveAnimation(),
+          );
+          console.log(
+            "Current animation:",
+            indicator.animationManager.currentAnimation,
+          );
         }, 100);
       } else {
-        console.error('No voxel indicator component on origin entity');
+        console.error("No voxel indicator component on origin entity");
       }
     } else {
-      console.error('Origin entity not found');
+      console.error("Origin entity not found");
     }
   };
-  
+
   // Add function to manually sync entities with render system
   window.syncVoxelIndicators = () => {
-    console.log('🧊 Manually syncing voxel indicators...');
-    
+    console.log("🧊 Manually syncing voxel indicators...");
+
     const world = window.industrialPortfolio.world;
     if (!world) {
-      console.error('World not found');
+      console.error("World not found");
       return;
     }
-    
-    const renderSystem = world.getSystem('voxelIndicatorRender');
+
+    const renderSystem = world.getSystem("voxelIndicatorRender");
     if (!renderSystem) {
-      console.error('VoxelIndicatorRenderSystem not found');
+      console.error("VoxelIndicatorRenderSystem not found");
       return;
     }
-    
+
     const entities = Array.from(world.entities.values());
-    console.log('🧊 Found entities:', entities.length);
-    
-    entities.forEach(entity => {
-      if (entity.hasComponent(VoxelIndicatorComponent) && entity.hasComponent(TransformComponent)) {
-        console.log('🧊 Adding entity', entity.id, 'to render system');
+    console.log("🧊 Found entities:", entities.length);
+
+    entities.forEach((entity) => {
+      if (
+        entity.hasComponent(VoxelIndicatorComponent) &&
+        entity.hasComponent(TransformComponent)
+      ) {
+        console.log("🧊 Adding entity", entity.id, "to render system");
         renderSystem.addEntity(entity);
       }
     });
-    
-    console.log('🧊 Render system now has', renderSystem.voxelIndicators.size, 'indicators');
+
+    console.log(
+      "🧊 Render system now has",
+      renderSystem.voxelIndicators.size,
+      "indicators",
+    );
   };
-  
+
   // Add immediate visibility test
   window.testVoxelVisibility = () => {
-    console.log('🧊 Testing immediate voxel visibility...');
-    
+    console.log("🧊 Testing immediate voxel visibility...");
+
     const world = window.industrialPortfolio.world;
     if (!world) {
-      console.error('World not found');
+      console.error("World not found");
       return;
     }
-    
+
     const entities = Array.from(world.entities.values());
-    const originEntity = entities.find(e => e.getComponent('BrainComponent'));
-    
+    const originEntity = entities.find((e) => e.getComponent("BrainComponent"));
+
     if (originEntity) {
       const indicator = originEntity.getComponent(VoxelIndicatorComponent);
       if (indicator) {
         // Force a cube to be visible immediately
-        console.log('🧊 Setting center voxel visible immediately');
+        console.log("🧊 Setting center voxel visible immediately");
         indicator.setVoxel(4, 4, 0, 255, 0, 0, 1.0); // Bright red center
         const centerIndex = indicator.getVoxelIndex(4, 4, 0);
         const voxel = indicator.voxels[centerIndex];
-        
+
         // Force it to be visible without animation
         voxel.visible = true;
         voxel.targetVisible = true;
         voxel.isAnimating = false;
-        voxel.animationType = 'pulse';
+        voxel.animationType = "pulse";
         voxel.appearProgress = 1.0;
-        
+
         indicator.needsUpdate = true;
-        
-        console.log('🧊 Forced voxel state:', voxel);
-        console.log('🧊 Indicator info:', indicator.getInfo());
+
+        console.log("🧊 Forced voxel state:", voxel);
+        console.log("🧊 Indicator info:", indicator.getInfo());
       } else {
-        console.error('No voxel indicator component on origin entity');
+        console.error("No voxel indicator component on origin entity");
       }
     } else {
-      console.error('Origin entity not found');
+      console.error("Origin entity not found");
     }
   };
 });
