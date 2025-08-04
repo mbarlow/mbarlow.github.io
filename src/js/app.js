@@ -701,6 +701,16 @@ class IndustrialPortfolio {
     // Switch chat target
     this.currentChatTarget = targetEntity;
     
+    // Create or activate session with the target
+    const activeSession = this.activatePlayerTargetSession();
+    if (!activeSession) {
+      this.addMessage("system", "❌ Failed to activate session");
+      return;
+    }
+    
+    // Load chat history
+    await this.loadSessionHistory(session);
+    
     // Update active session in UI
     this.updateActiveSessionUI(session.id);
     
@@ -722,6 +732,40 @@ class IndustrialPortfolio {
         item.classList.remove("active");
       }
     });
+  }
+
+  async loadSessionHistory(session) {
+    try {
+      const persistenceSystem = this.world.getSystem("persistence");
+      if (!persistenceSystem || !session.chatLogId) return;
+      
+      // Load chat log from storage
+      const chatLog = await persistenceSystem.storage.loadChatLog(session.chatLogId);
+      if (!chatLog || !chatLog.messages) return;
+      
+      // Clear current chat display
+      const chatContainer = document.getElementById("chat-messages");
+      if (chatContainer) {
+        chatContainer.innerHTML = '';
+      }
+      
+      // Display historical messages
+      for (const msg of chatLog.messages) {
+        const senderEntity = this.world.getEntity(msg.senderId);
+        const role = msg.senderId === this.playerEntity?.id ? "user" : "assistant";
+        const senderName = senderEntity?.tag || "Unknown";
+        
+        this.addMessage(role, msg.content, {
+          timestamp: msg.timestamp,
+          senderName: senderName,
+          historical: true
+        });
+      }
+      
+      console.log(`Loaded ${chatLog.messages.length} messages from session history`);
+    } catch (error) {
+      console.error("Failed to load session history:", error);
+    }
   }
 
   showSessionMenu(session, menuBtn) {
@@ -1065,13 +1109,20 @@ class IndustrialPortfolio {
     try {
       const sessions = await persistenceSystem.storage.getAllSessions();
       
-      if (sessions.length === 0) {
+      // Filter sessions for current connection
+      const connectionSessions = sessions.filter(session => 
+        session.participants && 
+        session.participants.includes(this.playerEntity?.id) &&
+        session.participants.includes(this.originEntity?.id)
+      );
+      
+      if (connectionSessions.length === 0) {
         this.addMessage("assistant", "No session history found.");
         return;
       }
 
       // Sort by last activity and take top 10
-      const recentSessions = sessions
+      const recentSessions = connectionSessions
         .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
         .slice(0, 10);
 
@@ -1447,9 +1498,16 @@ class IndustrialPortfolio {
 
   async deleteAllSessions(persistenceSystem) {
     const sessions = await persistenceSystem.storage.getAllSessions();
-    const count = sessions.length;
+    // Filter sessions for current connection
+    const connectionSessions = sessions.filter(session => 
+      session.participants && 
+      session.participants.includes(this.playerEntity?.id) &&
+      session.participants.includes(this.originEntity?.id)
+    );
+    
+    const count = connectionSessions.length;
 
-    for (const session of sessions) {
+    for (const session of connectionSessions) {
       await persistenceSystem.storage.deleteSession(session.id);
       if (session.chatLogId) {
         await persistenceSystem.storage.deleteChatLog(session.chatLogId);
@@ -1461,7 +1519,14 @@ class IndustrialPortfolio {
 
   async deleteSessionRange(persistenceSystem, startIdx, endIdx) {
     const sessions = await persistenceSystem.storage.getAllSessions();
-    const sortedSessions = sessions.sort(
+    // Filter sessions for current connection
+    const connectionSessions = sessions.filter(session => 
+      session.participants && 
+      session.participants.includes(this.playerEntity?.id) &&
+      session.participants.includes(this.originEntity?.id)
+    );
+    
+    const sortedSessions = connectionSessions.sort(
       (a, b) => new Date(b.lastActivityAt) - new Date(a.lastActivityAt),
     );
 
@@ -1489,6 +1554,13 @@ class IndustrialPortfolio {
     try {
       const session = await persistenceSystem.storage.loadSession(sessionId);
       if (session) {
+        // Check if session belongs to current connection
+        if (!session.participants || 
+            !session.participants.includes(this.playerEntity?.id) ||
+            !session.participants.includes(this.originEntity?.id)) {
+          return 0; // Session doesn't belong to this connection
+        }
+        
         // Delete session and associated data
         await persistenceSystem.storage.deleteSession(sessionId);
         if (session.chatLogId) {
@@ -1506,9 +1578,15 @@ class IndustrialPortfolio {
   async deleteOldSessions(persistenceSystem, days) {
     const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const sessions = await persistenceSystem.storage.getAllSessions();
+    // Filter sessions for current connection
+    const connectionSessions = sessions.filter(session => 
+      session.participants && 
+      session.participants.includes(this.playerEntity?.id) &&
+      session.participants.includes(this.originEntity?.id)
+    );
 
     let deletedCount = 0;
-    for (const session of sessions) {
+    for (const session of connectionSessions) {
       if (new Date(session.lastActivityAt) < cutoffDate) {
         await persistenceSystem.storage.deleteSession(session.id);
         if (session.chatLogId) {
@@ -1691,6 +1769,16 @@ class IndustrialPortfolio {
       // Switch the active target for chat
       this.currentChatTarget = targetEntity;
       
+      // Create or activate session with the new target
+      const activeSession = this.activatePlayerTargetSession();
+      if (!activeSession) {
+        this.addMessage("assistant", `❌ Failed to create session with ${entityName}.`);
+        return;
+      }
+      
+      // Load existing chat history if available
+      await this.loadSessionHistory(activeSession);
+      
       this.addMessage("assistant", `✅ Connected to ${entityName}! Your messages will now go to this entity.`);
 
     } catch (error) {
@@ -1709,11 +1797,15 @@ class IndustrialPortfolio {
       const brain = entity.getComponent("BrainComponent");
       const tag = entity.tag || `Entity ${entity.id}`;
       const personality = brain.personality || "unknown";
-      response += `• **${tag}** - ${personality} (ID: ${entity.id})\n`;
+      const isActive = this.currentChatTarget && this.currentChatTarget.id === entity.id;
+      const activeIndicator = isActive ? " 🔗 **ACTIVE**" : "";
+      response += `• **${tag}** - ${personality} (ID: ${entity.id})${activeIndicator}\n`;
     });
 
     if (chatEntities.length === 0) {
       response += "No entities with chat capabilities found.";
+    } else {
+      response += `\n*Currently connected to: ${this.currentChatTarget?.tag || "None"}*`;
     }
 
     this.addMessage("assistant", response);
