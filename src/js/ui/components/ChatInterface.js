@@ -353,7 +353,7 @@ export class ChatInterface extends UIComponent {
         const [cmd, ...args] = command.slice(1).split(" ");
         const subCommand = args.join(" ");
         
-        Debug.log(this.name, 'Processing slash command', { cmd, subCommand });
+        Debug.log(this.name, 'Processing slash command', { cmd, subCommand, fullCommand: command });
         
         switch (cmd) {
             case "start":
@@ -381,13 +381,13 @@ export class ChatInterface extends UIComponent {
                 await this.handleContextCommand();
                 break;
             case "delete":
-                await this.handleDeleteCommand(subCommand);
+                await this.handleDeleteCommand(command); // Pass full command
                 break;
             case "titles":
                 await this.handleTitlesCommand();
                 break;
             case "connect":
-                await this.handleConnectCommand(subCommand);
+                await this.handleConnectCommand(command); // Pass full command
                 break;
             default:
                 this.addMessage(
@@ -741,16 +741,19 @@ export class ChatInterface extends UIComponent {
         this.emit(UIEvents.COMMAND_EXECUTED, { command: 'context' });
     }
 
-    async handleDeleteCommand(subCommand) {
-        this.emit(UIEvents.COMMAND_EXECUTED, { command: 'delete', args: { subCommand } });
+    async handleDeleteCommand(fullCommand) {
+        Debug.log(this.name, 'Emitting delete command', { fullCommand });
+        this.emit(UIEvents.COMMAND_EXECUTED, { command: 'delete', args: { fullCommand } });
     }
 
     async handleTitlesCommand() {
+        Debug.log(this.name, 'Emitting titles command');
         this.emit(UIEvents.COMMAND_EXECUTED, { command: 'titles' });
     }
 
-    async handleConnectCommand(subCommand) {
-        this.emit(UIEvents.COMMAND_EXECUTED, { command: 'connect', args: { subCommand } });
+    async handleConnectCommand(fullCommand) {
+        Debug.log(this.name, 'Emitting connect command', { fullCommand });
+        this.emit(UIEvents.COMMAND_EXECUTED, { command: 'connect', args: { fullCommand } });
     }
 
     // Getter methods for DOM elements

@@ -347,6 +347,7 @@ class IndustrialPortfolio {
    */
   handleChatCommand(data) {
     const { command, args } = data;
+    console.log('🎯 App received chat command:', { command, args });
     
     switch (command) {
       case 'start':
@@ -374,13 +375,13 @@ class IndustrialPortfolio {
         this.handleContextCommand();
         break;
       case 'delete':
-        this.handleDeleteCommand(args.subCommand);
+        this.handleDeleteCommand(args.fullCommand);
         break;
       case 'titles':
         this.handleGenerateTitlesCommand();
         break;
       case 'connect':
-        this.handleConnectCommand(args.subCommand);
+        this.handleConnectCommand(args.fullCommand);
         break;
       default:
         console.warn('Unknown chat command:', command);
