@@ -110,21 +110,21 @@ Incremental refactoring of 2,287-line app.js into modular UI components.
 - [ ] Create context menu template
 - [ ] Test context menu functionality
 
-## Phase 5: Command System (Week 3)
+## Phase 5: Command System (Week 3) ✅
 
-### Task 5.1: Create Command System ⏳
-- [ ] Create `CommandManager.js`
-- [ ] Implement simple function mapping
-- [ ] Move command parsing logic
-- [ ] Add command registration system
+### Task 5.1: Create Command System ✅
+- [x] Create `CommandManager.js`
+- [x] Implement simple function mapping
+- [x] Move command parsing logic
+- [x] Add command registration system
 
-### Task 5.2: Extract Individual Commands ⏳
-- [ ] Move `/history` command logic
-- [ ] Move `/delete` command logic
-- [ ] Move `/connect` command logic
-- [ ] Move `/titles` command logic
-- [ ] Move `/help` command logic
-- [ ] Test all commands still work
+### Task 5.2: Extract Individual Commands ✅
+- [x] Move `/history` command logic
+- [x] Move `/delete` command logic
+- [x] Move `/connect` command logic
+- [x] Move `/titles` command logic
+- [x] Move `/help` command logic
+- [x] Test all commands still work
 
 ## Phase 6: Integration Layer (Week 3-4)
 

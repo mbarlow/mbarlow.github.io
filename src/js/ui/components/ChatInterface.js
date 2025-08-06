@@ -2,6 +2,7 @@ import { UIComponent } from './UIComponent.js';
 import { Debug } from '../utils/Debug.js';
 import { UIEvents } from '../utils/EventBus.js';
 import { DOMHelpers } from '../utils/DOMHelpers.js';
+import { CommandManager } from './CommandManager.js';
 
 /**
  * Chat Interface Component
@@ -45,6 +46,10 @@ export class ChatInterface extends UIComponent {
         this.world = null;
         this.sessionSystem = null;
         this.agentSystem = null;
+        this.appInstance = null;
+        
+        // Command system
+        this.commandManager = null;
         
         Debug.log(this.name, 'Created with config', this.config);
     }
@@ -86,6 +91,9 @@ export class ChatInterface extends UIComponent {
         this.agentSystem = dependencies.agentSystem;
         this.originEntity = dependencies.originEntity;
         this.appInstance = dependencies.appInstance; // Add reference to main app
+        
+        // Initialize command manager with app instance
+        this.commandManager = new CommandManager(this.appInstance);
         
         // Set default chat target to origin entity
         if (this.originEntity) {
@@ -350,10 +358,19 @@ export class ChatInterface extends UIComponent {
         this.clearInput();
         this.addMessage("user", command);
         
+        Debug.log(this.name, 'Processing slash command', { command });
+        
+        // Use CommandManager if available, otherwise fall back to old system
+        if (this.commandManager) {
+            const handled = await this.commandManager.executeCommand(command);
+            if (handled) {
+                return;
+            }
+        }
+        
+        // Fallback to original command handling (temporary during migration)
         const [cmd, ...args] = command.slice(1).split(" ");
         const subCommand = args.join(" ");
-        
-        Debug.log(this.name, 'Processing slash command', { cmd, subCommand, fullCommand: command });
         
         switch (cmd) {
             case "start":
