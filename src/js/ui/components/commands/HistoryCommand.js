@@ -49,11 +49,11 @@ export class HistoryCommand {
                 const index = i + 1;
                 
                 // Get participant names
-                const participantNames = await this.app.getParticipantNames(session.participants);
+                const participantNames = await this.getParticipantNames(session.participants);
                 
                 // Get chat log to check for images
                 const chatLog = await persistenceSystem.storage.loadChatLog(session.chatLogId);
-                const imageCount = this.app.countImagesInChatLog(chatLog);
+                const imageCount = this.countImagesInChatLog(chatLog);
                 
                 response += `${index}. **${session.title || 'Untitled Session'}** (${new Date(session.lastActivityAt).toLocaleString()})\n`;
                 response += `   📝 ${session.messageCount} messages | 👥 ${participantNames.join(', ')}\n`;
@@ -79,5 +79,36 @@ export class HistoryCommand {
             debugLog.ui('History command failed', { error: error.message });
             this.app.addMessage("assistant", "Failed to load history. Please try again.");
         }
+    }
+
+    async getParticipantNames(participantIds) {
+        const names = [];
+        
+        for (const entityId of participantIds) {
+            const entity = this.app.world.getEntity(entityId);
+            if (entity) {
+                // Get entity name from tag or brain component
+                let name = entity.tag || `Entity ${entityId}`;
+                
+                const brain = entity.getComponent("BrainComponent");
+                if (brain && brain.personality) {
+                    name = `${name} (${brain.personality})`;
+                }
+                
+                names.push(name);
+            } else {
+                names.push(`Entity ${entityId}`);
+            }
+        }
+        
+        return names;
+    }
+
+    countImagesInChatLog(chatLog) {
+        if (!chatLog || !chatLog.messages) return 0;
+        
+        return chatLog.messages.filter(message => 
+            message.images && message.images.length > 0
+        ).length;
     }
 }

@@ -9,6 +9,13 @@ import { DeleteCommand } from './commands/DeleteCommand.js';
 import { ConnectCommand } from './commands/ConnectCommand.js';
 import { TitlesCommand } from './commands/TitlesCommand.js';
 import { HelpCommand } from './commands/HelpCommand.js';
+import { SearchCommand } from './commands/SearchCommand.js';
+import { SaveCommand } from './commands/SaveCommand.js';
+import { ExportCommand } from './commands/ExportCommand.js';
+import { WhoCommand } from './commands/WhoCommand.js';
+import { ModelCommand } from './commands/ModelCommand.js';
+import { ContextCommand } from './commands/ContextCommand.js';
+import { StartCommand } from './commands/StartCommand.js';
 
 export class CommandManager {
     constructor(appInstance) {
@@ -143,8 +150,15 @@ export class CommandManager {
         const connectCommand = new ConnectCommand(this.app);
         const titlesCommand = new TitlesCommand(this.app);
         const helpCommand = new HelpCommand(this.app, this);
+        const searchCommand = new SearchCommand(this.app);
+        const saveCommand = new SaveCommand(this.app);
+        const exportCommand = new ExportCommand(this.app);
+        const whoCommand = new WhoCommand(this.app);
+        const modelCommand = new ModelCommand(this.app);
+        const contextCommand = new ContextCommand(this.app);
+        const startCommand = new StartCommand(this.app);
 
-        // Register extracted commands
+        // Register all commands
         this.registerCommand('history', historyCommand.execute.bind(historyCommand), {
             help: historyCommand.help,
             category: historyCommand.category
@@ -170,76 +184,43 @@ export class CommandManager {
             category: helpCommand.category
         });
 
-        // Register commands that still delegate to app.js
-        this.registerCommand('start', this.handleStartCommand.bind(this), {
-            help: 'Enter FPS mode',
-            category: 'navigation'
+        this.registerCommand('search', searchCommand.execute.bind(searchCommand), {
+            help: searchCommand.help,
+            category: searchCommand.category
         });
 
-        this.registerCommand('search', this.handleSearchCommand.bind(this), {
-            help: 'Search chat history',
-            category: 'chat'
+        this.registerCommand('save', saveCommand.execute.bind(saveCommand), {
+            help: saveCommand.help,
+            category: saveCommand.category
         });
 
-        this.registerCommand('save', this.handleSaveCommand.bind(this), {
-            help: 'Force save current session',
-            category: 'session'
+        this.registerCommand('export', exportCommand.execute.bind(exportCommand), {
+            help: exportCommand.help,
+            category: exportCommand.category
         });
 
-        this.registerCommand('export', this.handleExportCommand.bind(this), {
-            help: 'Export all session data',
-            category: 'session'
+        this.registerCommand('who', whoCommand.execute.bind(whoCommand), {
+            help: whoCommand.help,
+            category: whoCommand.category
         });
 
-        this.registerCommand('who', this.handleWhoCommand.bind(this), {
-            help: 'Show entity information',
-            category: 'info'
+        this.registerCommand('model', modelCommand.execute.bind(modelCommand), {
+            help: modelCommand.help,
+            category: modelCommand.category
         });
 
-        this.registerCommand('model', this.handleModelCommand.bind(this), {
-            help: 'Display current LLM model',
-            category: 'info'
+        this.registerCommand('context', contextCommand.execute.bind(contextCommand), {
+            help: contextCommand.help,
+            category: contextCommand.category
         });
 
-        this.registerCommand('context', this.handleContextCommand.bind(this), {
-            help: 'Show conversation context',
-            category: 'info'
+        this.registerCommand('start', startCommand.execute.bind(startCommand), {
+            help: startCommand.help,
+            category: startCommand.category
         });
 
         debugLog.ui('Default commands registered', {
             totalCommands: this.commands.size
         });
-    }
-
-    // Command handlers that still delegate to app.js methods
-    async handleStartCommand(args) {
-        if (this.app.handleStartGameCommand) {
-            return this.app.handleStartGameCommand();
-        }
-        return this.app.addMessage('assistant', 'FPS mode not available');
-    }
-
-    async handleSearchCommand(args) {
-        return this.app.handleSearchCommand(args.fullCommand);
-    }
-
-    async handleSaveCommand(args) {
-        return this.app.handleSaveCommand();
-    }
-
-    async handleExportCommand(args) {
-        return this.app.handleExportCommand();
-    }
-
-    async handleWhoCommand(args) {
-        return this.app.handleWhoCommand();
-    }
-
-    async handleModelCommand(args) {
-        return this.app.handleModelCommand();
-    }
-
-    async handleContextCommand(args) {
-        return this.app.handleContextCommand();
     }
 }
