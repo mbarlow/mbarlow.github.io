@@ -197,6 +197,22 @@ export class InitializationSystem extends System {
                 ],
                 responseStyle: "helpful",
                 systemPrompt: "You are the Origin Marker AI assistant.",
+                contextSettings: {
+                    includeHistory: true,
+                    historyLimit: 5,
+                    includePersonality: true,
+                    includeSystemInfo: true,
+                    includeCommands: true,
+                },
+                commandAccess: [
+                    "search",
+                    "history",
+                    "who",
+                    "model",
+                    "context",
+                    "save",
+                    "export",
+                ],
             });
             originMarker.addComponent(originBrain);
 
@@ -204,9 +220,9 @@ export class InitializationSystem extends System {
             const originConnection = new Connection();
             originMarker.addComponent(originConnection);
 
-            // Add voxel indicator components for visual feedback
+            // Add 3D voxel indicator components (replacing 2D indicators)
             const playerIndicator = new VoxelIndicatorComponent({
-                position: { x: 0, y: 4, z: 0 }, // Above player
+                position: { x: 0, y: 1.2, z: 0 }, // Above player, closer due to smaller size
                 brightness: 0.8,
                 state: "idle",
                 gridSize: { width: 8, height: 8, depth: 1 }, // 8x8 grid as requested
