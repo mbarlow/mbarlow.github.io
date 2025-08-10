@@ -1,5 +1,5 @@
-import { System } from '../core/System.js';
-import { TransformComponent, MeshComponent, AnimationComponent } from '../components/index.js';
+import { System } from '../../core/System.js';
+import { TransformComponent, MeshComponent, AnimationComponent } from '../../components/index.js';
 
 /**
  * ThreeRenderSystem - Handles 3D rendering using Three.js

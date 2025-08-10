@@ -1,4 +1,4 @@
-import { System } from '../core/System.js';
+import { System } from '../../core/System.js';
 
 /**
  * InputSystem - Handles keyboard input when chat input is not focused

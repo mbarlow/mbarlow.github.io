@@ -1,9 +1,9 @@
-import { System } from '../core/System.js';
-import { Connection } from '../components/Connection.js';
-import { Session } from '../components/Session.js';
-import { ChatLog } from '../components/ChatLog.js';
-import { BrainComponent } from '../components/BrainComponent.js';
-import { VoxelIndicatorComponent } from '../components/VoxelIndicatorComponent.js';
+import { System } from '../../core/System.js';
+import { Connection } from '../../components/Connection.js';
+import { Session } from '../../components/Session.js';
+import { ChatLog } from '../../components/ChatLog.js';
+import { BrainComponent } from '../../components/BrainComponent.js';
+import { VoxelIndicatorComponent } from '../../components/VoxelIndicatorComponent.js';
 
 export class SessionSystem extends System {
     constructor(world) {

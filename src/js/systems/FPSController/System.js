@@ -1,5 +1,5 @@
-import { System } from '../core/System.js';
-import { PlayerControllerComponent, CameraComponent, MeshComponent } from '../components/index.js';
+import { System } from '../../core/System.js';
+import { PlayerControllerComponent, CameraComponent, MeshComponent } from '../../components/index.js';
 
 /**
  * FPSControllerSystem - Handles FPS controls, mouse look, and UI management

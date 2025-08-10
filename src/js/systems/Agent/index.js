@@ -1,0 +1,1 @@
+export { AgentSystem } from './System.js';

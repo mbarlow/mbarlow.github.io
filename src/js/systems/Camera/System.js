@@ -1,5 +1,5 @@
-import { System } from '../core/System.js';
-import { CameraComponent, TransformComponent, PlayerControllerComponent } from '../components/index.js';
+import { System } from '../../core/System.js';
+import { CameraComponent, TransformComponent, PlayerControllerComponent } from '../../components/index.js';
 
 /**
  * CameraSystem - Manages camera entities and updates

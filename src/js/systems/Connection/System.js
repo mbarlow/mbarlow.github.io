@@ -1,6 +1,6 @@
-import { System } from '../core/System.js';
-import { Connection } from '../components/Connection.js';
-import { TransformComponent } from '../components/index.js';
+import { System } from '../../core/System.js';
+import { Connection } from '../../components/Connection.js';
+import { TransformComponent } from '../../components/index.js';
 
 export class ConnectionSystem extends System {
     constructor(world, scene) {

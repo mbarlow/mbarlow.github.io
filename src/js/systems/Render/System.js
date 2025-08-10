@@ -1,6 +1,6 @@
-import { System } from '../core/System.js';
-import { Transform } from '../components/Transform.js';
-import { Renderable } from '../components/Renderable.js';
+import { System } from '../../core/System.js';
+import { Transform } from '../../components/Transform.js';
+import { Renderable } from '../../components/Renderable.js';
 
 export class RenderSystem extends System {
   constructor() {

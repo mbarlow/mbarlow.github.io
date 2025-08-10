@@ -1,0 +1,1 @@
+export { InputSystem } from './System.js';

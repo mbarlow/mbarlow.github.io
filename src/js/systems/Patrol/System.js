@@ -1,5 +1,5 @@
-import { System } from '../core/System.js';
-import { TransformComponent, PatrolComponent } from '../components/index.js';
+import { System } from '../../core/System.js';
+import { TransformComponent, PatrolComponent } from '../../components/index.js';
 
 /**
  * PatrolSystem - Makes entities patrol in a circle
