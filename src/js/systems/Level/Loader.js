@@ -1,4 +1,4 @@
-import { System } from "../core/System.js";
+import { System } from "../../core/System.js";
 import {
   TransformComponent,
   MeshComponent,
@@ -10,7 +10,7 @@ import {
   BrainComponent,
   VoxelIndicatorComponent,
   Connection,
-} from "../components/index.js";
+} from "../../components/index.js";
 
 /**
  * LevelLoader - Loads level data from JSON or creates default environment

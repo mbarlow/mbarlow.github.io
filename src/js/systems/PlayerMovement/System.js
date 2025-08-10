@@ -1,5 +1,5 @@
-import { System } from '../core/System.js';
-import { TransformComponent, MovementComponent, PlayerControllerComponent, CameraComponent } from '../components/index.js';
+import { System } from '../../core/System.js';
+import { TransformComponent, MovementComponent, PlayerControllerComponent, CameraComponent } from '../../components/index.js';
 
 /**
  * PlayerMovementSystem - Handles player movement physics and logic

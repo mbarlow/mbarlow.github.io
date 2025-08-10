@@ -1,8 +1,8 @@
-import { System } from '../core/System.js';
-import { SessionStorage } from '../components/SessionStorage.js';
-import { Session } from '../components/Session.js';
-import { ChatLog } from '../components/ChatLog.js';
-import { BrainComponent } from '../components/BrainComponent.js';
+import { System } from '../../core/System.js';
+import { SessionStorage } from '../../components/SessionStorage.js';
+import { Session } from '../../components/Session.js';
+import { ChatLog } from '../../components/ChatLog.js';
+import { BrainComponent } from '../../components/BrainComponent.js';
 
 export class PersistenceSystem extends System {
     constructor(world) {

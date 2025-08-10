@@ -1,5 +1,5 @@
-import { System } from "../core/System.js";
-import { VoxelIndicatorComponent } from "../components/VoxelIndicatorComponent.js";
+import { System } from "../../core/System.js";
+import { VoxelIndicatorComponent } from "../../components/VoxelIndicatorComponent.js";
 
 /**
  * AgentSystem - Handles communication with local Ollama instance

@@ -1,6 +1,6 @@
-import { System } from '../core/System.js';
-import { VoxelIndicatorComponent } from '../components/VoxelIndicatorComponent.js';
-import { TransformComponent } from '../components/TransformComponent.js';
+import { System } from '../../core/System.js';
+import { VoxelIndicatorComponent } from '../../components/VoxelIndicatorComponent.js';
+import { TransformComponent } from '../../components/TransformComponent.js';
 
 /**
  * VoxelIndicatorRenderSystem - Renders 3D voxel indicators

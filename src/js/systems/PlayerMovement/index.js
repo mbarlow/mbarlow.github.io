@@ -1,0 +1,1 @@
+export { PlayerMovementSystem } from './System.js';
