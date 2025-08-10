@@ -1,22 +1,6 @@
 import { World } from "./core/index.js";
 import {
-  RenderSystem,
-  InputSystem,
-  ThreeRenderSystem,
-  LevelLoader,
-  AgentSystem,
-  CameraSystem,
-  PlayerMovementSystem,
-  FPSControllerSystem,
-  PatrolSystem,
-  ConnectionSystem,
-  SessionSystem,
-  PersistenceSystem,
-  VoxelIndicatorRenderSystem,
-  DOMInterfaceSystem,
-  ChatInterfaceSystem,
-  SessionManagementSystem,
-  CommandSystem,
+  InitializationSystem,
 } from "./systems/index.js";
 import {
   Connection,
@@ -42,14 +26,18 @@ class IndustrialPortfolio {
     console.log("🏭 Initializing...");
 
     try {
-      // Theme, Font, Navigation, and Sidebar now handled by DOMInterfaceSystem
-      // Chat interface now handled by ChatInterfaceSystem
-      // Session management now handled by SessionManagementSystem
-      await this.initECS();
+      // Create and initialize the InitializationSystem
+      const initSystem = new InitializationSystem();
+      initSystem.init(this.world, this);
+      
+      // Use InitializationSystem to bootstrap the ECS
+      await initSystem.initializeECS();
+      
       this.initialized = true;
       console.log("✅ Industrial Portfolio initialized successfully");
     } catch (error) {
       console.error("❌ Error initializing portfolio:", error);
+      throw error;
     }
   }
 
