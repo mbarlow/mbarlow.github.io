@@ -1,0 +1,1 @@
+export { InitializationSystem } from './System.js';
