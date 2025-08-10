@@ -167,8 +167,8 @@ export class SessionManagementSystem extends System {
 
             // Sort sessions by last activity (most recent first)
             sessions.sort((a, b) => {
-                const aTime = new Date(a.lastActivity || a.createdAt || 0).getTime();
-                const bTime = new Date(b.lastActivity || b.createdAt || 0).getTime();
+                const aTime = new Date(a.lastActivityAt || a.createdAt || 0).getTime();
+                const bTime = new Date(b.lastActivityAt || b.createdAt || 0).getTime();
                 return bTime - aTime;
             });
 
@@ -201,14 +201,16 @@ export class SessionManagementSystem extends System {
         const metaDiv = document.createElement("div");
         metaDiv.className = "session-meta";
         
-        const messageCount = session.messages ? session.messages.length : 0;
-        const lastActivity = session.lastActivity ? 
-            new Date(session.lastActivity).toLocaleString() : 
+        // Use the actual session structure properties
+        const messageCount = session.messageCount || 0;
+        const lastActivity = session.lastActivityAt || session.createdAt;
+        const formattedActivity = lastActivity ? 
+            new Date(lastActivity).toLocaleString() : 
             'No activity';
         
         metaDiv.innerHTML = `
             <span class="message-count">${messageCount} messages</span>
-            <span class="last-activity">${lastActivity}</span>
+            <span class="last-activity">${formattedActivity}</span>
         `;
 
         sessionDiv.appendChild(titleDiv);

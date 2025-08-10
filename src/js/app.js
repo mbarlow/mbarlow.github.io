@@ -16,6 +16,7 @@ import {
   DOMInterfaceSystem,
   ChatInterfaceSystem,
   SessionManagementSystem,
+  CommandSystem,
 } from "./systems/index.js";
 import {
   Connection,
@@ -146,6 +147,11 @@ class IndustrialPortfolio {
     const sessionManagement = new SessionManagementSystem();
     this.world.addSystem(sessionManagement, "sessionManagement");
     sessionManagement.init(this.world, this);
+
+    // Add Command system for slash command handling
+    const commandSystem = new CommandSystem();
+    this.world.addSystem(commandSystem, "command");
+    commandSystem.init(this.world, this);
 
     // Add core systems
     this.world.addSystem(new RenderSystem(), "render");
@@ -471,59 +477,6 @@ class IndustrialPortfolio {
     }
   }
 
-  async handleHistoryCommand() {
-    const persistenceSystem = this.world.getSystem("persistence");
-    if (!persistenceSystem) {
-      this.addMessage("assistant", "History system not available.");
-      return;
-    }
-
-    try {
-      const sessions = await persistenceSystem.storage.getAllSessions();
-      
-      if (sessions.length === 0) {
-        this.addMessage("assistant", "No session history found.");
-        return;
-      }
-
-      // Sort by last activity and take top 10
-      const recentSessions = sessions
-        .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
-        .slice(0, 10);
-
-      let response = "Recent session history:\n\n";
-      
-      for (let i = 0; i < recentSessions.length; i++) {
-        const session = recentSessions[i];
-        const index = i + 1;
-        
-        // Get participant names
-        const participantNames = await this.getParticipantNames(session.participants);
-        
-        // Get chat log to check for images
-        const chatLog = await persistenceSystem.storage.loadChatLog(session.chatLogId);
-        const imageCount = this.countImagesInChatLog(chatLog);
-        
-        response += `${index}. **${session.title || 'Untitled Session'}** (${new Date(session.lastActivityAt).toLocaleString()})\n`;
-        response += `   📝 ${session.messageCount} messages | 👥 ${participantNames.join(', ')}\n`;
-        
-        if (imageCount > 0) {
-          response += `   🖼️ ${imageCount} image${imageCount > 1 ? 's' : ''}\n`;
-        }
-        
-        if (session.keywords?.length > 0) {
-          response += `   🏷️ ${session.keywords.join(', ')}\n`;
-        }
-        
-        response += "\n";
-      }
-
-      this.addMessage("assistant", response);
-    } catch (error) {
-      this.addMessage("assistant", "Failed to load history. Please try again.");
-      console.error("History error:", error);
-    }
-  }
 
   async getParticipantNames(participantIds) {
     const names = [];
@@ -556,24 +509,6 @@ class IndustrialPortfolio {
     ).length;
   }
 
-  async handleSaveCommand() {
-    const persistenceSystem = this.world.getSystem("persistence");
-    if (!persistenceSystem) {
-      this.addMessage("assistant", "Save system not available.");
-      return;
-    }
-
-    try {
-      await persistenceSystem.forceSave();
-      this.addMessage("assistant", "✅ Current session saved successfully!");
-    } catch (error) {
-      this.addMessage(
-        "assistant",
-        "❌ Failed to save session. Please try again.",
-      );
-      console.error("Save error:", error);
-    }
-  }
 
   async handleExportCommand() {
     const persistenceSystem = this.world.getSystem("persistence");
@@ -612,68 +547,7 @@ class IndustrialPortfolio {
     }
   }
 
-  async handleWhoCommand() {
-    if (!this.originEntity) {
-      this.addMessage("assistant", "Origin entity not available.");
-      return;
-    }
 
-    const brain = this.originEntity.getComponent(BrainComponent);
-    if (!brain) {
-      this.addMessage("assistant", "Brain component not found.");
-      return;
-    }
-
-    let response = `🤖 **Origin Marker Entity Information**\n\n`;
-    response += `**Identity:**\n`;
-    response += `- Entity ID: ${this.originEntity.id}\n`;
-    response += `- Tag: ${this.originEntity.tag}\n`;
-    response += `- Primary Function: ${brain.primaryFunction}\n`;
-    response += `- LLM Model: ${brain.model}\n`;
-    response += `- Response Style: ${brain.responseStyle}\n\n`;
-
-    response += `**Personality Traits:**\n`;
-    Object.entries(brain.personality).forEach(([trait, value]) => {
-      const percentage = (value * 100).toFixed(0);
-      response += `- ${trait}: ${percentage}%\n`;
-    });
-
-    response += `\n**Interests:** ${brain.interests.join(", ")}\n`;
-    response += `**Expertise:** ${brain.expertise.join(", ")}\n`;
-    response += `**Session History:** ${brain.sessionHistory.length} previous sessions\n`;
-    response += `**Command Access:** ${brain.commandAccess.join(", ")}\n`;
-
-    this.addMessage("assistant", response);
-  }
-
-  async handleModelCommand() {
-    const agentSystem = this.world.getSystem("agent");
-    if (!agentSystem) {
-      this.addMessage("assistant", "Agent system not available.");
-      return;
-    }
-
-    let response = `🧠 **LLM Model Information**\n\n`;
-    response += `**Current Model:** ${agentSystem.currentModel}\n`;
-    response += `**Connection Status:** ${agentSystem.isConnected ? "✅ Connected" : "❌ Disconnected"}\n`;
-    response += `**Ollama URL:** ${agentSystem.ollamaUrl}\n`;
-    response += `**Image Support:** ${agentSystem.supportsImages ? "✅ Yes" : "❌ No"}\n`;
-    response += `**Available Models:** ${agentSystem.availableModels.length}\n\n`;
-
-    if (agentSystem.availableModels.length > 0) {
-      response += `**Model List:**\n`;
-      agentSystem.availableModels.slice(0, 10).forEach((model) => {
-        const indicator = model.name === agentSystem.currentModel ? "→" : "  ";
-        response += `${indicator} ${model.name}\n`;
-      });
-
-      if (agentSystem.availableModels.length > 10) {
-        response += `... and ${agentSystem.availableModels.length - 10} more models\n`;
-      }
-    }
-
-    this.addMessage("assistant", response);
-  }
 
   async handleContextCommand() {
     const sessionSystem = this.world.getSystem("session");
@@ -1173,15 +1047,27 @@ class IndustrialPortfolio {
       const query = command.substring(8);
       await this.handleSearchCommand(query);
     } else if (cmd === "/history") {
-      await this.handleHistoryCommand();
+      const commandSystem = this.world.getSystem("command");
+      if (commandSystem) {
+        await commandSystem.handleHistoryCommand();
+      }
     } else if (cmd === "/save") {
-      await this.handleSaveCommand();
+      const commandSystem = this.world.getSystem("command");
+      if (commandSystem) {
+        await commandSystem.handleSaveCommand();
+      }
     } else if (cmd === "/export") {
       await this.handleExportCommand();
     } else if (cmd === "/who") {
-      await this.handleWhoCommand();
+      const commandSystem = this.world.getSystem("command");
+      if (commandSystem) {
+        await commandSystem.handleWhoCommand();
+      }
     } else if (cmd === "/model") {
-      await this.handleModelCommand();
+      const commandSystem = this.world.getSystem("command");
+      if (commandSystem) {
+        await commandSystem.handleModelCommand();
+      }
     } else if (cmd === "/context") {
       await this.handleContextCommand();
     } else if (cmd.startsWith("/delete")) {
