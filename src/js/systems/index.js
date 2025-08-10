@@ -14,3 +14,4 @@ export { VoxelIndicatorRenderSystem } from './VoxelIndicatorRender/index.js';
 export { DOMInterfaceSystem } from './DOMInterface/index.js';
 export { ChatInterfaceSystem } from './ChatInterface/index.js';
 export { SessionManagementSystem } from './SessionManagement/index.js';
+export { CommandSystem } from './Command/index.js';
