@@ -205,10 +205,28 @@ export class SessionStorage extends Component {
         const lowerKeywords = keywords.map(k => k.toLowerCase());
         
         return sessions.filter(session => {
-            if (!session.keywords) return false;
-            return session.keywords.some(keyword => 
-                lowerKeywords.some(search => keyword.toLowerCase().includes(search))
+            // Search in keywords if they exist
+            if (session.keywords && session.keywords.length > 0) {
+                const hasKeywordMatch = session.keywords.some(keyword => 
+                    lowerKeywords.some(search => keyword.toLowerCase().includes(search))
+                );
+                if (hasKeywordMatch) return true;
+            }
+            
+            // Also search in title as fallback
+            if (session.title) {
+                const titleMatch = lowerKeywords.some(search => 
+                    session.title.toLowerCase().includes(search)
+                );
+                if (titleMatch) return true;
+            }
+            
+            // Search in session ID as last resort
+            const idMatch = lowerKeywords.some(search => 
+                session.id.toLowerCase().includes(search)
             );
+            
+            return idMatch;
         });
     }
 

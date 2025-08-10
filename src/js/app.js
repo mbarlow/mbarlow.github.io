@@ -441,41 +441,6 @@ class IndustrialPortfolio {
     return null;
   }
 
-  async handleSearchCommand(query) {
-    const persistenceSystem = this.world.getSystem("persistence");
-    if (!persistenceSystem) {
-      this.addMessage("assistant", "Search system not available.");
-      return;
-    }
-
-    try {
-      const results = await persistenceSystem.searchSessions(query);
-
-      if (results.length === 0) {
-        this.addMessage("assistant", `No sessions found matching "${query}"`);
-        return;
-      }
-
-      let response = `Found ${results.length} session(s) matching "${query}":\n\n`;
-      results.slice(0, 5).forEach((session, index) => {
-        const date = new Date(session.lastActivityAt).toLocaleDateString();
-        const title = session.title || "Untitled Session";
-        response += `${index + 1}. ${title} (${date}) - ${session.messageCount} messages\n`;
-        if (session.keywords?.length > 0) {
-          response += `   Keywords: ${session.keywords.join(", ")}\n`;
-        }
-      });
-
-      if (results.length > 5) {
-        response += `\n...and ${results.length - 5} more results.`;
-      }
-
-      this.addMessage("assistant", response);
-    } catch (error) {
-      this.addMessage("assistant", "Search failed. Please try again.");
-      console.error("Search error:", error);
-    }
-  }
 
 
   async getParticipantNames(participantIds) {
@@ -510,93 +475,9 @@ class IndustrialPortfolio {
   }
 
 
-  async handleExportCommand() {
-    const persistenceSystem = this.world.getSystem("persistence");
-    if (!persistenceSystem) {
-      this.addMessage("assistant", "Export system not available.");
-      return;
-    }
-
-    try {
-      const data = await persistenceSystem.exportData();
-      if (!data) {
-        this.addMessage("assistant", "No data to export.");
-        return;
-      }
-
-      // Create download
-      const blob = new Blob([JSON.stringify(data, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `ecs-sessions-${new Date().toISOString().split("T")[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      this.addMessage(
-        "assistant",
-        `✅ Exported ${data.sessions.length} sessions and ${data.chatLogs.length} chat logs!`,
-      );
-    } catch (error) {
-      this.addMessage("assistant", "❌ Export failed. Please try again.");
-      console.error("Export error:", error);
-    }
-  }
 
 
 
-  async handleContextCommand() {
-    const sessionSystem = this.world.getSystem("session");
-    if (!sessionSystem || !this.playerEntity || !this.originEntity) {
-      this.addMessage("assistant", "Session context not available.");
-      return;
-    }
-
-    // Get current session
-    const activeSessions = sessionSystem.getSessionHistory(this.playerEntity);
-    const activeSession = activeSessions.find((s) => s && s.state === "active");
-
-    let response = `📋 **Current Conversation Context**\n\n`;
-
-    if (activeSession) {
-      response += `**Active Session:**\n`;
-      response += `- Session ID: ${activeSession.id}\n`;
-      response += `- Participants: ${activeSession.participants.size}\n`;
-      response += `- State: ${activeSession.state}\n`;
-      response += `- Message Count: ${activeSession.messageCount}\n`;
-      response += `- Title: ${activeSession.title || "Not yet generated"}\n`;
-      response += `- Keywords: ${activeSession.keywords?.join(", ") || "None"}\n`;
-      response += `- Created: ${new Date(activeSession.createdAt).toLocaleString()}\n`;
-      response += `- Last Activity: ${new Date(activeSession.lastActivityAt).toLocaleString()}\n\n`;
-    } else {
-      response += `**No Active Session**\n\n`;
-    }
-
-    // Connection info
-    const connectionSystem = this.world.getSystem("connection");
-    if (connectionSystem) {
-      const connectionCount = connectionSystem.connectors.size;
-      response += `**Connection Status:**\n`;
-      response += `- Active Connections: ${connectionCount}\n`;
-      response += `- Visual State: ${connectionCount > 0 ? "Connected" : "Disconnected"}\n\n`;
-    }
-
-    // Entity brain context
-    const originBrain = this.originEntity.getComponent(BrainComponent);
-    if (originBrain) {
-      response += `**Origin Marker Context:**\n`;
-      response += `- Current Emotion: ${originBrain.emotion}\n`;
-      response += `- Energy Level: ${(originBrain.energy * 100).toFixed(0)}%\n`;
-      response += `- Short-term Memories: ${originBrain.shortTermMemory.length}\n`;
-      response += `- Context Window: ${originBrain.contextWindow} messages\n`;
-    }
-
-    this.addMessage("assistant", response);
-  }
 
   async handleDeleteCommand(command) {
     const parts = command.trim().split(/\s+/);
@@ -1045,7 +926,10 @@ class IndustrialPortfolio {
       }
     } else if (cmd.startsWith("/search ")) {
       const query = command.substring(8);
-      await this.handleSearchCommand(query);
+      const commandSystem = this.world.getSystem("command");
+      if (commandSystem) {
+        await commandSystem.handleSearchCommand(query);
+      }
     } else if (cmd === "/history") {
       const commandSystem = this.world.getSystem("command");
       if (commandSystem) {
@@ -1057,7 +941,10 @@ class IndustrialPortfolio {
         await commandSystem.handleSaveCommand();
       }
     } else if (cmd === "/export") {
-      await this.handleExportCommand();
+      const commandSystem = this.world.getSystem("command");
+      if (commandSystem) {
+        await commandSystem.handleExportCommand();
+      }
     } else if (cmd === "/who") {
       const commandSystem = this.world.getSystem("command");
       if (commandSystem) {
@@ -1069,7 +956,10 @@ class IndustrialPortfolio {
         await commandSystem.handleModelCommand();
       }
     } else if (cmd === "/context") {
-      await this.handleContextCommand();
+      const commandSystem = this.world.getSystem("command");
+      if (commandSystem) {
+        await commandSystem.handleContextCommand();
+      }
     } else if (cmd.startsWith("/delete")) {
       await this.handleDeleteCommand(command);
     } else if (cmd === "/titles" || cmd === "/generate-titles") {
