@@ -28,9 +28,7 @@ import { SystemPromptBuilder } from "./utils/index.js";
 // Main Application Controller
 class IndustrialPortfolio {
   constructor() {
-    // Theme and font now managed by DOMInterfaceSystem
-    this.currentView = "chat";
-    this.sidebarCollapsed = false;
+    // Theme, font, navigation, and sidebar now managed by DOMInterfaceSystem
     this.initialized = false;
     this.world = new World();
     this.currentChatTarget = null; // Will be set to origin entity by default
@@ -41,9 +39,7 @@ class IndustrialPortfolio {
     console.log("🏭 Initializing...");
 
     try {
-      // Theme and Font systems now handled by DOMInterfaceSystem
-      this.initNavigation();
-      this.initSidebar();
+      // Theme, Font, Navigation, and Sidebar now handled by DOMInterfaceSystem
       this.initChatInterface();
       this.initSessionsList();
       await this.initECS();
@@ -139,44 +135,7 @@ class IndustrialPortfolio {
 
 
 
-  initNavigation() {
-    console.log("🧭 Initializing navigation...");
 
-    const navItems = document.querySelectorAll(".nav-item");
-
-    navItems.forEach((item) => {
-      item.addEventListener("click", (e) => {
-        e.preventDefault();
-        const viewName = item.dataset.view;
-        if (viewName) {
-          this.switchView(viewName);
-        }
-      });
-    });
-
-    console.log("✅ Navigation initialized");
-  }
-
-  initSidebar() {
-    console.log("📱 Initializing sidebar...");
-
-    const sidebarToggle = document.getElementById("sidebar-toggle");
-    const sidebar = document.getElementById("sidebar");
-
-    if (sidebarToggle && sidebar) {
-      sidebarToggle.addEventListener("click", () => {
-        this.toggleSidebar();
-      });
-    }
-
-    // Load saved sidebar state
-    const savedCollapsed = localStorage.getItem("sidebar-collapsed") === "true";
-    if (savedCollapsed) {
-      this.collapseSidebar();
-    }
-
-    console.log("✅ Sidebar initialized");
-  }
 
   initializeDefaultConnections() {
     console.log("🔗 Initializing default connections...");
@@ -1638,56 +1597,7 @@ class IndustrialPortfolio {
 
 
 
-  switchView(viewName) {
-    console.log(`🔄 Switching to ${viewName} view`);
 
-    // Update nav items
-    document.querySelectorAll(".nav-item").forEach((item) => {
-      item.classList.remove("active");
-      if (item.dataset.view === viewName) {
-        item.classList.add("active");
-      }
-    });
-
-    // Update views
-    document.querySelectorAll(".view").forEach((view) => {
-      view.classList.remove("active");
-    });
-
-    const targetView = document.getElementById(`${viewName}-view`);
-    if (targetView) {
-      targetView.classList.add("active");
-      this.currentView = viewName;
-    }
-
-    console.log(`✅ Switched to ${viewName} view`);
-  }
-
-  toggleSidebar() {
-    const sidebar = document.getElementById("sidebar");
-
-    if (this.sidebarCollapsed) {
-      this.expandSidebar();
-    } else {
-      this.collapseSidebar();
-    }
-  }
-
-  collapseSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    sidebar.classList.add("collapsed");
-    this.sidebarCollapsed = true;
-    localStorage.setItem("sidebar-collapsed", "true");
-    console.log("🔼 Sidebar collapsed");
-  }
-
-  expandSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    sidebar.classList.remove("collapsed");
-    this.sidebarCollapsed = false;
-    localStorage.setItem("sidebar-collapsed", "false");
-    console.log("🔽 Sidebar expanded");
-  }
 
   autoResizeTextarea(textarea) {
     textarea.style.height = "auto";
