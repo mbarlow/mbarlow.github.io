@@ -1,0 +1,1 @@
+export { DOMInterfaceSystem } from './System.js';
