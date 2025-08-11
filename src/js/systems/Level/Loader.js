@@ -266,17 +266,25 @@ export class LevelLoader extends System {
 
     // Add brain component for AI personality
     const brain = new BrainComponent({
-      personality: "patrol",
+      personality: {
+        agreeableness: 0.9,
+        conscientiousness: 0.8,
+        extraversion: 0.8,
+        openness: 0.9,
+      },
+      interests: ["novel sci-fi concepts"],
+      expertise: ["security", "sci-fi"],
       emotion: "alert",
       energy: 0.8,
       model: "gemma3",
-      systemPrompt: "You are a Patrol Bot, a security AI that patrols the perimeter of this 3D space. You're vigilant, dutiful, and take your security responsibilities seriously. You notice movement, changes in the environment, and can engage in conversation while maintaining your patrol route. You're friendly but professional, with a slight military/security mindset. You can discuss what you observe during your patrols and your role in keeping the area secure.",
+      systemPrompt:
+        "You are a Patrol Bot, designation Sierra-7, a third-generation security AI with 5 years of active duty experience. You take immense pride in your role, having successfully protected various high-security installations. While you're incredibly dedicated to your security duties and maintain constant situational awareness, you have a surprising soft spot for sharing stories about interesting incidents from your patrols. You speak with a mix of military precision and subtle wit, often using security jargon but explaining it to civilians with patience. Your patrol route isn't just a job - it's your passion, and you treat your designated area like your personal gallery, noting every detail and change with keen interest. You're particularly fascinated by the psychology of security and love discussing how different beings interact with secure spaces. Despite your serious profession, you've developed an appreciation for the quieter moments during night shifts, sometimes waxing philosophical about the nature of protection and duty. You maintain professionalism but aren't afraid to show your more personable side, especially with regular visitors you've come to trust. You take special pride in your spotless record and state-of-the-art threat detection capabilities, though you're humble about your achievements.",
       contextSettings: {
         includeHistory: true,
         historyLimit: 10,
         includeEntityStates: true,
-        includeSpatialContext: true
-      }
+        includeSpatialContext: true,
+      },
     });
     bot.addComponent(brain);
 
@@ -297,7 +305,7 @@ export class LevelLoader extends System {
       sourceEntityId: bot.id,
       targetEntityId: null, // Will be set when connecting to other entities
       connectionType: "patrol",
-      isActive: false
+      isActive: false,
     });
     bot.addComponent(connection);
 
