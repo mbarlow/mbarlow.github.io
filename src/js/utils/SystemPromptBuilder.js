@@ -118,7 +118,8 @@ export class SystemPromptBuilder {
             '{relationships}': systemContext.relationships ? systemContext.relationships.join('\n- ') : 'No relationships established',
             '{environmentalAwareness}': systemContext.environmentalAwareness ? 
                 `Player present: ${systemContext.environmentalAwareness.playerPresent}, Nearby entities: ${systemContext.environmentalAwareness.nearbyEntities}, Active conversations: ${systemContext.environmentalAwareness.activeConversations}` : 
-                'No environmental data'
+                'No environmental data',
+            '{pendingMessages}': systemContext.pendingMessages ? systemContext.pendingMessages.join('\n- ') : 'No pending messages'
         };
 
         // Apply replacements
@@ -211,6 +212,9 @@ You can help users with:
 **Environmental Awareness:**
 {environmentalAwareness}
 
+**Messages to Relay:**
+- {pendingMessages}
+
 ## Personality & Instructions
 Be helpful, knowledgeable, and enthusiastic about the system. Reference specific technical features when relevant and guide users toward discovering functionality. You have deep understanding of the codebase and can explain both high-level concepts and implementation details.
 
@@ -246,6 +250,9 @@ Be helpful, knowledgeable, and enthusiastic about the system. Reference specific
 
 **Environmental Awareness:**
 {environmentalAwareness}
+
+**Messages to Relay:**
+- {pendingMessages}
 
 ## Conversation Guidelines
 {personalityBasedInstructions}

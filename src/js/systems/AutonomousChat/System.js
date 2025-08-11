@@ -322,6 +322,13 @@ export class AutonomousChatSystem extends System {
         // Build rich context for AI generation
         const context = speakerBrain.generateConversationContext(listener);
         
+        // Check for pending messages to relay
+        const pendingMessages = speakerBrain.getPendingMessagesFor(listener.id);
+        let pendingMessageContext = '';
+        if (pendingMessages.length > 0) {
+            pendingMessageContext = `\n\nIMPORTANT: You have ${pendingMessages.length} message(s) to relay to this entity:\n${pendingMessages.map(msg => `- From ${this.world.entities.get(msg.fromEntityId)?.tag || 'Unknown'}: "${msg.message}"`).join('\n')}`;
+        }
+        
         const prompt = `You are ${speaker.tag || 'an entity'} starting a conversation with ${listener.tag || 'another entity'}. 
 Generate a natural, contextual conversation starter based on your recent experiences and observations.
 
@@ -331,14 +338,21 @@ Your Context:
 - Current emotion: ${context.currentEmotion}
 - Energy level: ${context.energy}
 - Relationship status: ${conversation.context.relationship_status}
-- Environment: ${context.observations.playerPresent ? 'Player is present' : 'Player absent'}, ${context.observations.nearbyEntities} other entities nearby
+- Environment: ${context.observations.playerPresent ? 'Player is present' : 'Player absent'}, ${context.observations.nearbyEntities} other entities nearby${pendingMessageContext}
 
 ${context.systemPrompt}
 
-Respond with just the conversation starter message (1-2 sentences). Be natural and contextual, not generic.`;
+Respond with just the conversation starter message (1-2 sentences). Be natural and contextual, not generic. If you have messages to relay, include them naturally in your greeting.`;
         
         try {
             const response = await agentSystem.generateResponseWithContext(prompt, speaker, {});
+            
+            // Clear pending messages since they've been relayed
+            if (pendingMessages.length > 0) {
+                speakerBrain.clearPendingMessagesFor(listener.id);
+                console.log(`%c✉️ ${speaker.tag || speaker.id} relayed ${pendingMessages.length} message(s) to ${listener.tag || listener.id}`, this.consoleStyles.system);
+            }
+            
             // Extract topic from the starter for context
             conversation.context.topic = this.extractTopicFromMessage(response);
             return response;

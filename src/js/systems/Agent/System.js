@@ -238,12 +238,40 @@ export class AgentSystem extends System {
         };
       }
 
+      // Add pending messages to context
+      if (brain.pendingMessages && brain.pendingMessages.length > 0) {
+        context.pendingMessages = brain.pendingMessages.map(msg => {
+          const fromEntity = this.world.entities.get(msg.fromEntityId);
+          const fromName = fromEntity?.tag || 'Unknown';
+          return `From ${fromName}: "${msg.message}" (${new Date(msg.timestamp).toLocaleTimeString()})`;
+        });
+      }
+
       const response = await this.generateResponse(content, {
         model: brain.model !== 'human' ? brain.model : this.currentModel,
         entity: entity,
         context: context,
         images: context.images || []
       });
+
+      // Log the conversation experience for the entity
+      if (brain && context.userMessage) {
+        brain.logExperience('interaction', `Had conversation with player`, {
+          topic: this.extractTopicFromMessage(content),
+          player_message: context.userMessage,
+          ai_response: response.substring(0, 100) + (response.length > 100 ? '...' : ''),
+          timestamp: Date.now()
+        });
+        
+        // Update relationship with player
+        const playerEntity = this.world?.getEntitiesByTag('player')[0];
+        if (playerEntity) {
+          brain.updateRelationship(playerEntity.id, 'conversation', 'positive', this.extractTopicFromMessage(content));
+        }
+        
+        // Check if player is asking to relay a message
+        this.checkForMessageRelay(content, entity, brain, playerEntity);
+      }
 
       // Update indicator to show success
       if (indicator) {
@@ -597,6 +625,56 @@ export class AgentSystem extends System {
       this.lastHealthCheck = now;
       this.checkHealth();
     }
+  }
+
+  checkForMessageRelay(content, entity, brain, playerEntity) {
+    const lowerContent = content.toLowerCase();
+    
+    // Look for message relay patterns
+    const relayPatterns = [
+      /tell\s+(\w+)\s+(.+)/i,
+      /say\s+to\s+(\w+)\s+(.+)/i,
+      /give\s+(\w+)\s+this\s+message:\s*(.+)/i,
+      /relay\s+to\s+(\w+):\s*(.+)/i,
+      /pass\s+this\s+to\s+(\w+):\s*(.+)/i
+    ];
+    
+    for (const pattern of relayPatterns) {
+      const match = content.match(pattern);
+      if (match) {
+        const targetName = match[1].toLowerCase();
+        const message = match[2].trim();
+        
+        // Find the target entity
+        const entities = Array.from(this.world.entities.values());
+        const targetEntity = entities.find(e => 
+          (e.tag && e.tag.toLowerCase().includes(targetName)) ||
+          (e.id && String(e.id).toLowerCase().includes(targetName))
+        );
+        
+        if (targetEntity && targetEntity.id !== entity.id) {
+          brain.addPendingMessage(targetEntity.id, message, playerEntity?.id);
+          console.log(`📝 ${entity.tag || entity.id} will relay message to ${targetEntity.tag || targetEntity.id}: "${message}"`);
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  extractTopicFromMessage(message) {
+    // Simple topic extraction - look for key phrases
+    const topics = ['consciousness', 'data', 'patterns', 'systems', 'optimization', 'security', 'analysis', 'processing', 'intelligence', 'learning', 'conversation', 'greeting', 'question', 'help'];
+    const lowerMessage = message.toLowerCase();
+    
+    for (const topic of topics) {
+      if (lowerMessage.includes(topic)) {
+        return topic;
+      }
+    }
+    
+    return 'general';
   }
 
   destroy() {

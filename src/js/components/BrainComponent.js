@@ -54,6 +54,9 @@ export class BrainComponent extends Component {
         this.verbosity = config.verbosity || 0.5;
         this.creativity = config.creativity || 0.5;
         
+        // Message relay system
+        this.pendingMessages = []; // Messages to relay to other entities
+        
         // System prompt configuration
         this.systemPrompt = config.systemPrompt || '';
         this.promptTemplate = config.promptTemplate || 'default';
@@ -362,5 +365,35 @@ export class BrainComponent extends Component {
         Object.keys(this.personality).forEach(trait => {
             this.personality[trait] = Math.max(0, Math.min(1, this.personality[trait]));
         });
+    }
+    
+    // Message relay methods
+    addPendingMessage(targetEntityId, message, fromEntityId = null) {
+        this.pendingMessages.push({
+            targetEntityId,
+            message,
+            fromEntityId,
+            timestamp: Date.now()
+        });
+        
+        // Log as an experience
+        this.logExperience('message_relay', `Asked to relay message to entity ${targetEntityId}`, {
+            message: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
+            from: fromEntityId
+        });
+    }
+    
+    getPendingMessagesFor(targetEntityId) {
+        return this.pendingMessages.filter(msg => msg.targetEntityId === targetEntityId);
+    }
+    
+    clearPendingMessagesFor(targetEntityId) {
+        const messages = this.getPendingMessagesFor(targetEntityId);
+        this.pendingMessages = this.pendingMessages.filter(msg => msg.targetEntityId !== targetEntityId);
+        return messages;
+    }
+    
+    hasPendingMessagesFor(targetEntityId) {
+        return this.pendingMessages.some(msg => msg.targetEntityId === targetEntityId);
     }
 }
