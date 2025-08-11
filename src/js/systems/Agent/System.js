@@ -1,5 +1,6 @@
 import { System } from "../../core/System.js";
 import { VoxelIndicatorComponent } from "../../components/VoxelIndicatorComponent.js";
+import { CONFIG } from "../../config/index.js";
 
 /**
  * AgentSystem - Handles communication with local Ollama instance
@@ -9,15 +10,15 @@ export class AgentSystem extends System {
     super();
     this.requiredComponents = [];
 
-    // Ollama configuration
-    this.ollamaUrl = "http://localhost:11434";
-    this.currentModel = "gemma3";
+    // Ollama configuration from CONFIG
+    this.ollamaUrl = CONFIG.ai.ollamaUrl;
+    this.currentModel = CONFIG.ai.defaultModel;
     this.availableModels = [];
 
     // Connection state
     this.isConnected = false;
     this.lastHealthCheck = 0;
-    this.healthCheckInterval = 5000; // Check every 5 seconds
+    this.healthCheckInterval = CONFIG.ai.healthCheckInterval;
 
     // Chat state
     this.messages = [];
@@ -107,7 +108,7 @@ export class AgentSystem extends System {
 
   checkModelCapabilities() {
     // Check if current model supports multimodal input
-    const multimodalModels = ["gemma3", "llava", "bakllava"];
+    const multimodalModels = CONFIG.ai.multimodalModels;
     this.supportsImages = multimodalModels.some((model) =>
       this.currentModel.toLowerCase().includes(model),
     );
@@ -230,7 +231,7 @@ export class AgentSystem extends System {
           if (indicator.state === 'success') {
             indicator.setState('idle');
           }
-        }, 1500);
+        }, CONFIG.ai.timeout.successDisplay);
       }
 
       return response;
@@ -244,7 +245,7 @@ export class AgentSystem extends System {
           if (indicator.state === 'error') {
             indicator.setState('idle');
           }
-        }, 2000);
+        }, CONFIG.ai.timeout.errorDisplay);
       }
       
       throw error;
@@ -492,13 +493,13 @@ export class AgentSystem extends System {
       setTimeout(() => {
         button.textContent = originalText;
         button.classList.remove("copied");
-      }, 2000);
+      }, CONFIG.ai.timeout.copyFeedback);
     } catch (error) {
       console.error("Failed to copy message:", error);
       button.textContent = "Failed";
       setTimeout(() => {
         button.textContent = "Copy";
-      }, 2000);
+      }, CONFIG.ai.timeout.copyFeedback);
     }
   }
 

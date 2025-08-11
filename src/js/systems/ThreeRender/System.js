@@ -1,5 +1,6 @@
 import { System } from '../../core/System.js';
 import { TransformComponent, MeshComponent, AnimationComponent } from '../../components/index.js';
+import { CONFIG } from '../../config/index.js';
 
 /**
  * ThreeRenderSystem - Handles 3D rendering using Three.js
@@ -21,33 +22,8 @@ export class ThreeRenderSystem extends System {
     this.ambientLight = null;
     this.directionalLight = null;
     
-    // Theme colors
-    this.themeColors = {
-      light: {
-        background: 0xf5f5f5,
-        grid: 0xcccccc,
-        ambient: 0xffffff,
-        directional: 0xffffff,
-        fog: 0xf5f5f5,
-        cube: 0x333333
-      },
-      dark: {
-        background: 0x1a1a1a,
-        grid: 0x444444,
-        ambient: 0x404040,
-        directional: 0xffffff,
-        fog: 0x1a1a1a,
-        cube: 0xffffff
-      },
-      grey: {
-        background: 0x2d2d2d,
-        grid: 0x555555,
-        ambient: 0x606060,
-        directional: 0xffffff,
-        fog: 0x2d2d2d,
-        cube: 0x808080
-      }
-    };
+    // Theme colors from CONFIG
+    this.themeColors = CONFIG.rendering.themes;
     
     this.currentTheme = 'dark';
     this.initialized = false;
@@ -69,7 +45,12 @@ export class ThreeRenderSystem extends System {
     
     // Setup default/fallback camera
     const aspect = window.innerWidth / window.innerHeight;
-    this.defaultCamera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
+    this.defaultCamera = new THREE.PerspectiveCamera(
+      CONFIG.rendering.camera.orbit.fov, 
+      aspect, 
+      CONFIG.rendering.camera.orbit.near, 
+      CONFIG.rendering.camera.orbit.far
+    );
     this.defaultCamera.position.set(10, 10, 10);
     this.defaultCamera.lookAt(0, 0, 0);
     
@@ -116,23 +97,32 @@ export class ThreeRenderSystem extends System {
   
   setupLighting() {
     // Ambient light for overall illumination
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    this.ambientLight = new THREE.AmbientLight(
+      CONFIG.rendering.lighting.ambient.color, 
+      CONFIG.rendering.lighting.ambient.intensity
+    );
     this.scene.add(this.ambientLight);
     
     // Directional light for shadows
-    this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    this.directionalLight.position.set(5, 10, 5);
+    const dirConfig = CONFIG.rendering.lighting.directional;
+    this.directionalLight = new THREE.DirectionalLight(0xffffff, dirConfig.intensity);
+    this.directionalLight.position.set(
+      dirConfig.position.x, 
+      dirConfig.position.y, 
+      dirConfig.position.z
+    );
     this.directionalLight.castShadow = true;
     
     // Shadow configuration
-    this.directionalLight.shadow.mapSize.width = 2048;
-    this.directionalLight.shadow.mapSize.height = 2048;
-    this.directionalLight.shadow.camera.near = 0.5;
-    this.directionalLight.shadow.camera.far = 50;
-    this.directionalLight.shadow.camera.left = -20;
-    this.directionalLight.shadow.camera.right = 20;
-    this.directionalLight.shadow.camera.top = 20;
-    this.directionalLight.shadow.camera.bottom = -20;
+    const shadowConfig = dirConfig.shadow;
+    this.directionalLight.shadow.mapSize.width = shadowConfig.mapSize;
+    this.directionalLight.shadow.mapSize.height = shadowConfig.mapSize;
+    this.directionalLight.shadow.camera.near = shadowConfig.camera.near;
+    this.directionalLight.shadow.camera.far = shadowConfig.camera.far;
+    this.directionalLight.shadow.camera.left = shadowConfig.camera.left;
+    this.directionalLight.shadow.camera.right = shadowConfig.camera.right;
+    this.directionalLight.shadow.camera.top = shadowConfig.camera.top;
+    this.directionalLight.shadow.camera.bottom = shadowConfig.camera.bottom;
     
     this.scene.add(this.directionalLight);
   }
@@ -144,7 +134,10 @@ export class ThreeRenderSystem extends System {
     }
     
     // Create new grid with unit spacing
-    this.gridHelper = new THREE.GridHelper(20, 20);
+    this.gridHelper = new THREE.GridHelper(
+      CONFIG.rendering.grid.size, 
+      CONFIG.rendering.grid.divisions
+    );
     this.gridHelper.material.opacity = 0.3;
     this.gridHelper.material.transparent = true;
     this.scene.add(this.gridHelper);
@@ -159,7 +152,11 @@ export class ThreeRenderSystem extends System {
     this.scene.background = new THREE.Color(colors.background);
     
     // Update fog for depth
-    this.scene.fog = new THREE.Fog(colors.fog, 10, 50);
+    this.scene.fog = new THREE.Fog(
+      colors.fog || colors.background, 
+      CONFIG.rendering.fog.near, 
+      CONFIG.rendering.fog.far
+    );
     
     // Update grid color
     if (this.gridHelper) {

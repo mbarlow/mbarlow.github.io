@@ -1,6 +1,7 @@
 import { System } from '../../core/System.js';
 import { Connection } from '../../components/Connection.js';
 import { TransformComponent } from '../../components/index.js';
+import { CONFIG } from '../../config/index.js';
 
 export class ConnectionSystem extends System {
     constructor(world, scene) {
@@ -10,39 +11,16 @@ export class ConnectionSystem extends System {
         this.connectors = new Map(); // connectionKey -> connectorData
         this.time = 0; // Track time for organic animations
         
-        // Materials for different connection states
-        this.materials = {
-            inactive: new THREE.MeshBasicMaterial({
-                color: 0x444444,
+        // Materials for different connection states from CONFIG
+        this.materials = {};
+        Object.entries(CONFIG.connections.materials).forEach(([state, matConfig]) => {
+            this.materials[state] = new THREE.MeshBasicMaterial({
+                color: matConfig.color,
                 transparent: true,
-                opacity: 0.2,
-                emissive: 0x111111
-            }),
-            active: new THREE.MeshBasicMaterial({
-                color: 0x00ff88,
-                transparent: true,
-                opacity: 0.9,
-                emissive: 0x004422
-            }),
-            pending: new THREE.MeshBasicMaterial({
-                color: 0xffaa00,
-                transparent: true,
-                opacity: 0.7,
-                emissive: 0x442200
-            }),
-            connecting: new THREE.MeshBasicMaterial({
-                color: 0x4488ff,
-                transparent: true,
-                opacity: 0.6,
-                emissive: 0x002244
-            }),
-            error: new THREE.MeshBasicMaterial({
-                color: 0xff4444,
-                transparent: true,
-                opacity: 0.5,
-                emissive: 0x441111
-            })
-        };
+                opacity: matConfig.opacity,
+                emissive: matConfig.emissive
+            });
+        });
     }
 
     createConnectorKey(entity1Id, entity2Id) {
@@ -64,19 +42,20 @@ export class ConnectionSystem extends System {
         }
         
         // LOD calculation based on distance from camera
+        const lodConfig = CONFIG.connections.lod;
         let segments;
-        if (cameraDistance < 10) {
+        if (cameraDistance < lodConfig.distances.close) {
             // High detail for close connections
-            segments = Math.max(24, Math.floor(distance * 3));
-        } else if (cameraDistance < 30) {
+            segments = Math.max(lodConfig.segments.close.min, Math.floor(distance * lodConfig.segments.close.multiplier));
+        } else if (cameraDistance < lodConfig.distances.medium) {
             // Medium detail for medium distance
-            segments = Math.max(16, Math.floor(distance * 2));
+            segments = Math.max(lodConfig.segments.medium.min, Math.floor(distance * lodConfig.segments.medium.multiplier));
         } else {
             // Low detail for far connections
-            segments = Math.max(8, Math.floor(distance * 1));
+            segments = Math.max(lodConfig.segments.far.min, Math.floor(distance * lodConfig.segments.far.multiplier));
         }
         
-        return Math.min(segments, 60); // Cap maximum segments
+        return Math.min(segments, lodConfig.segments.max); // Cap maximum segments
     }
 
     calculateLODRadialSegments(distance, startPos, endPos) {
@@ -93,12 +72,13 @@ export class ConnectionSystem extends System {
         }
         
         // Radial segments LOD
-        if (cameraDistance < 10) {
-            return 12; // High detail
-        } else if (cameraDistance < 30) {
-            return 8;  // Medium detail
+        const lodConfig = CONFIG.connections.lod;
+        if (cameraDistance < lodConfig.distances.close) {
+            return lodConfig.radialSegments.close; // High detail
+        } else if (cameraDistance < lodConfig.distances.medium) {
+            return lodConfig.radialSegments.medium;  // Medium detail
         } else {
-            return 6;  // Low detail
+            return lodConfig.radialSegments.far;  // Low detail
         }
     }
 
@@ -119,21 +99,22 @@ export class ConnectionSystem extends System {
         const distance = startPos.distanceTo(endPos);
         const perpendicular = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
         
-        // Add randomized variation to curve parameters
-        const baseStrength = 0.3;
-        const strengthVariation = (Math.random() - 0.5) * 0.3; // ±0.15 variation
+        // Add randomized variation to curve parameters from CONFIG
+        const curveConfig = CONFIG.connections.curve;
+        const baseStrength = curveConfig.baseStrength;
+        const strengthVariation = (Math.random() - 0.5) * curveConfig.strengthVariation;
         const curveStrength = (baseStrength + strengthVariation) * distance;
         
-        const baseHeight = 0.15;
-        const heightVariation = (Math.random() - 0.5) * 0.2; // ±0.1 variation
+        const baseHeight = curveConfig.baseHeight;
+        const heightVariation = (Math.random() - 0.5) * curveConfig.heightVariation;
         const heightOffset = (baseHeight + heightVariation) * distance;
         
         // Randomize control point positions along the curve
-        const control1Pos = 0.25 + (Math.random() - 0.5) * 0.1; // 0.2 to 0.3
-        const control2Pos = 0.75 + (Math.random() - 0.5) * 0.1; // 0.7 to 0.8
+        const control1Pos = 0.25 + (Math.random() - 0.5) * curveConfig.controlPoint1Range;
+        const control2Pos = 0.75 + (Math.random() - 0.5) * curveConfig.controlPoint2Range;
         
         // Add some asymmetry to the curve
-        const asymmetryFactor = (Math.random() - 0.5) * 0.4;
+        const asymmetryFactor = (Math.random() - 0.5) * curveConfig.asymmetryFactor;
         
         const control1 = new THREE.Vector3()
             .addVectors(startPos, direction.clone().multiplyScalar(control1Pos))
@@ -155,7 +136,7 @@ export class ConnectionSystem extends System {
         
         // Generate tube geometry with LOD
         const segments = this.calculateLODSegments(distance, startPos, endPos);
-        const radius = 0.015;
+        const radius = CONFIG.connections.curve.tubeRadius;
         const radialSegments = this.calculateLODRadialSegments(distance, startPos, endPos);
         const tubeGeometry = new THREE.TubeGeometry(curve, segments, radius, radialSegments, false);
         
@@ -181,8 +162,8 @@ export class ConnectionSystem extends System {
             baseControl1: control1.clone(),
             baseControl2: control2.clone(),
             wavePhase: Math.random() * Math.PI * 2, // Random starting phase
-            waveSpeed: 0.5 + Math.random() * 1.0, // 0.5-1.5 speed variation
-            waveAmplitude: 0.05 + Math.random() * 0.1, // Small wave amplitude
+            waveSpeed: CONFIG.connections.animation.waveSpeedMin + Math.random() * (CONFIG.connections.animation.waveSpeedMax - CONFIG.connections.animation.waveSpeedMin),
+            waveAmplitude: CONFIG.connections.animation.waveAmplitudeMin + Math.random() * (CONFIG.connections.animation.waveAmplitudeMax - CONFIG.connections.animation.waveAmplitudeMin),
             curveParams: {
                 strengthVariation,
                 heightVariation,
@@ -310,9 +291,10 @@ export class ConnectionSystem extends System {
         connectorData.animationTime += deltaTime;
         
         // Create pulsing effect by modulating opacity
-        const pulseSpeed = 2.0; // 2 pulses per second
-        const baseOpacity = 0.9;
-        const pulseAmount = 0.3;
+        const animConfig = CONFIG.connections.animation;
+        const pulseSpeed = animConfig.pulseSpeed;
+        const baseOpacity = animConfig.baseOpacity;
+        const pulseAmount = animConfig.pulseAmount;
         
         const pulse = Math.sin(connectorData.animationTime * pulseSpeed * Math.PI * 2) * 0.5 + 0.5;
         const newOpacity = baseOpacity + (pulse * pulseAmount);
@@ -320,8 +302,9 @@ export class ConnectionSystem extends System {
         connectorData.mesh.material.opacity = newOpacity;
         
         // Optional: Add slight emissive pulsing
-        const baseBrightness = 0x004422;
-        const pulseBrightness = 0x006633;
+        const matConfig = CONFIG.connections.materials.active;
+        const baseBrightness = matConfig.emissive;
+        const pulseBrightness = matConfig.emissivePulse || matConfig.emissive;
         const emissivePulse = Math.floor(baseBrightness + (pulse * (pulseBrightness - baseBrightness)));
         
         // Ensure the material has an emissive property and use setHex correctly
@@ -334,15 +317,16 @@ export class ConnectionSystem extends System {
     }
 
     createParticles(connectorData) {
-        const particleCount = 8;
+        const particleConfig = CONFIG.connections.particles;
+        const particleCount = particleConfig.count;
         const particles = [];
         
         for (let i = 0; i < particleCount; i++) {
-            const geometry = new THREE.SphereGeometry(0.005, 4, 4);
+            const geometry = new THREE.SphereGeometry(particleConfig.radius, 4, 4);
             const material = new THREE.MeshBasicMaterial({
-                color: 0x00ff88,
+                color: CONFIG.connections.materials.active.color,
                 transparent: true,
-                opacity: 0.8
+                opacity: particleConfig.opacity
             });
             
             const particle = new THREE.Mesh(geometry, material);
@@ -351,7 +335,7 @@ export class ConnectionSystem extends System {
             particles.push({
                 mesh: particle,
                 progress: i / particleCount, // Distribute along curve
-                speed: 0.5 + Math.random() * 0.3 // Slight speed variation
+                speed: CONFIG.connections.particles.baseSpeed + Math.random() * CONFIG.connections.particles.speedVariation
             });
         }
         
@@ -380,8 +364,8 @@ export class ConnectionSystem extends System {
             particle.mesh.position.copy(position);
             
             // Fade particles based on distance from endpoints
-            const fadeZone = 0.1; // 10% of curve length
-            let opacity = 0.8;
+            const fadeZone = CONFIG.connections.particles.fadeZone;
+            let opacity = CONFIG.connections.particles.opacity;
             if (particle.progress < fadeZone) {
                 opacity *= particle.progress / fadeZone;
             } else if (particle.progress > 1 - fadeZone) {
@@ -436,7 +420,7 @@ export class ConnectionSystem extends System {
                 const currentPos2 = new THREE.Vector3().copy(transform2.position);
                 
                 // Only update if positions have changed significantly (optimization)
-                const threshold = 0.01; // 1cm movement threshold
+                const threshold = CONFIG.performance.updateThreshold;
                 const moved1 = connectorData.lastUpdatePos1.distanceTo(currentPos1) > threshold;
                 const moved2 = connectorData.lastUpdatePos2.distanceTo(currentPos2) > threshold;
                 

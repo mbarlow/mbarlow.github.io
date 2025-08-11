@@ -1,4 +1,5 @@
 import { Component } from '../core/Component.js';
+import { CONFIG } from '../config/index.js';
 
 /**
  * MovementComponent - Stores movement state and properties
@@ -7,13 +8,14 @@ export class MovementComponent extends Component {
   constructor(data = {}) {
     super();
     
-    // Movement properties
-    this.walkSpeed = data.walkSpeed || 5.0;
-    this.runSpeed = data.runSpeed || 8.0;
-    this.jumpForce = data.jumpForce || 10.0;
-    this.crouchSpeed = data.crouchSpeed || 2.0;
-    this.friction = data.friction || 10.0;
-    this.gravity = data.gravity || 20.0;
+    // Movement properties from CONFIG
+    const physics = CONFIG.physics.movement;
+    this.walkSpeed = data.walkSpeed || physics.walkSpeed;
+    this.runSpeed = data.runSpeed || physics.runSpeed;
+    this.jumpForce = data.jumpForce || physics.jumpForce;
+    this.crouchSpeed = data.crouchSpeed || physics.crouchSpeed;
+    this.friction = data.friction || physics.friction;
+    this.gravity = data.gravity || physics.gravity;
     
     // Current state
     this.velocity = new THREE.Vector3(0, 0, 0);
@@ -28,10 +30,11 @@ export class MovementComponent extends Component {
     this.wantsJump = false;
     this.wantsRun = false;
     
-    // Ground detection
+    // Ground detection from CONFIG
+    const character = CONFIG.physics.character;
     this.groundHeight = data.groundHeight || 0;
-    this.characterHeight = data.characterHeight || 1.8;
-    this.crouchHeight = data.crouchHeight || 1.2;
+    this.characterHeight = data.characterHeight || character.height;
+    this.crouchHeight = data.crouchHeight || character.crouchHeight;
     this.currentHeight = this.characterHeight;
     
     // Movement vectors (calculated each frame)
