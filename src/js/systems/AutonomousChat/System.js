@@ -43,6 +43,11 @@ export class AutonomousChatSystem extends System {
         this.world = world;
         console.log('%c🧠 AI-Driven Autonomous Chat System Initialized', this.consoleStyles.header);
         console.log('%cEntities will generate conversations based on their experiences and environment!', this.consoleStyles.system);
+        console.log('%cDEBUG: Use window.autonomousChat.triggerConversation() to manually trigger a conversation', this.consoleStyles.system);
+        console.log('%cDEBUG: Use window.autonomousChat.getStatus() to check system status', this.consoleStyles.system);
+        
+        // Expose to window for debugging
+        window.autonomousChat = this;
         
         // Start the conversation scheduler
         this.scheduleNextConversation();
@@ -63,6 +68,7 @@ export class AutonomousChatSystem extends System {
     attemptNewConversation() {
         // Get all entities with brains
         const entities = this.world.getEntitiesWithComponent(BrainComponent);
+        console.log(`%cDEBUG: Found ${entities.length} entities with brains: ${entities.map(e => e.tag || e.id).join(', ')}`, this.consoleStyles.system);
         
         // Filter out player and any entities already in conversation
         const availableEntities = entities.filter(entity => {
@@ -77,8 +83,13 @@ export class AutonomousChatSystem extends System {
             return true;
         });
         
+        console.log(`%cDEBUG: Available entities for conversation: ${availableEntities.map(e => e.tag || e.id).join(', ')}`, this.consoleStyles.system);
+        
         // Need at least 2 entities to have a conversation
-        if (availableEntities.length < 2) return;
+        if (availableEntities.length < 2) {
+            console.log('%cDEBUG: Not enough available entities for conversation', this.consoleStyles.system);
+            return;
+        }
         
         // Randomly select two entities
         const entity1 = availableEntities[Math.floor(Math.random() * availableEntities.length)];
@@ -271,8 +282,8 @@ export class AutonomousChatSystem extends System {
         });
         
         // Update relationships and log experiences
-        speakerBrain.updateRelationship(listener.id, 'conversation', 'positive');
-        listenerBrain.updateRelationship(speaker.id, 'conversation', 'positive');
+        speakerBrain.updateRelationship(listener.id, 'conversation', 'positive', conversation.context.topic);
+        listenerBrain.updateRelationship(speaker.id, 'conversation', 'positive', conversation.context.topic);
         
         speakerBrain.logExperience('interaction', `Had a conversation with ${listener.tag || listener.id}`, {
             topic: conversation.context.topic,

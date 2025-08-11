@@ -236,7 +236,7 @@ export class BrainComponent extends Component {
         };
     }
     
-    updateRelationship(entityId, interactionType, sentiment = 'neutral') {
+    updateRelationship(entityId, interactionType, sentiment = 'neutral', topic = null) {
         if (!this.relationships.has(entityId)) {
             this.relationships.set(entityId, {
                 entityId,
@@ -251,6 +251,15 @@ export class BrainComponent extends Component {
         const relationship = this.relationships.get(entityId);
         relationship.interactions++;
         relationship.lastInteraction = Date.now();
+        
+        // Add topic to topics_discussed if provided
+        if (topic && !relationship.topics_discussed.includes(topic)) {
+            relationship.topics_discussed.push(topic);
+            // Keep only last 10 topics
+            if (relationship.topics_discussed.length > 10) {
+                relationship.topics_discussed.shift();
+            }
+        }
         
         // Update sentiment (simple moving average)
         const sentimentValue = sentiment === 'positive' ? 1 : sentiment === 'negative' ? -1 : 0;

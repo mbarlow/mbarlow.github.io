@@ -211,9 +211,31 @@ export class AgentSystem extends System {
         const sessionSystem = this.world.getSystem('session');
         if (sessionSystem) {
           // Get recent conversation context
-          // This would be implemented to include recent messages
           context.recentHistory = this.getRecentConversationContext(entity, brain.contextSettings.historyLimit);
         }
+      }
+
+      // Add entity's experiences, relationships, and environmental awareness to context
+      if (brain.experiences && brain.experiences.length > 0) {
+        context.recentExperiences = brain.experiences.slice(-5).map(exp => 
+          `${exp.type}: ${exp.description} (${exp.context ? JSON.stringify(exp.context) : 'no details'})`
+        );
+      }
+
+      if (brain.relationships && brain.relationships.size > 0) {
+        context.relationships = Array.from(brain.relationships.entries()).map(([entityId, rel]) => {
+          const entity = this.world.entities.get(entityId);
+          const entityName = entity?.tag || `Entity ${entityId}`;
+          return `${entityName}: ${rel.interactions} interactions, ${rel.sentiment} sentiment, topics: [${rel.topics_discussed?.slice(-3).join(', ') || 'none'}]`;
+        });
+      }
+
+      if (brain.environmentalAwareness) {
+        context.environmentalAwareness = {
+          playerPresent: brain.environmentalAwareness.playerPresent,
+          nearbyEntities: brain.environmentalAwareness.nearbyEntities?.length || 0,
+          activeConversations: brain.environmentalAwareness.systemLoad || 0
+        };
       }
 
       const response = await this.generateResponse(content, {

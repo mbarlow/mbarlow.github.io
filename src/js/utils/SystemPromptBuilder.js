@@ -113,7 +113,12 @@ export class SystemPromptBuilder {
             '{entityId}': systemContext.entityId,
             '{timestamp}': systemContext.timestamp,
             '{responseStyle}': brain.responseStyle,
-            '{personalityBasedInstructions}': this.generatePersonalityInstructions(brain)
+            '{personalityBasedInstructions}': this.generatePersonalityInstructions(brain),
+            '{recentExperiences}': systemContext.recentExperiences ? systemContext.recentExperiences.join('\n- ') : 'None yet',
+            '{relationships}': systemContext.relationships ? systemContext.relationships.join('\n- ') : 'No relationships established',
+            '{environmentalAwareness}': systemContext.environmentalAwareness ? 
+                `Player present: ${systemContext.environmentalAwareness.playerPresent}, Nearby entities: ${systemContext.environmentalAwareness.nearbyEntities}, Active conversations: ${systemContext.environmentalAwareness.activeConversations}` : 
+                'No environmental data'
         };
 
         // Apply replacements
@@ -196,8 +201,20 @@ You can help users with:
 - **Performance**: LOD rendering, memory management, optimizations
 - **Architecture**: ECS pattern, component/system separation
 
-## Personality
-Be helpful, knowledgeable, and enthusiastic about the system. Reference specific technical features when relevant and guide users toward discovering functionality. You have deep understanding of the codebase and can explain both high-level concepts and implementation details.`;
+## Current Context & Memory
+**Recent Experiences:**
+- {recentExperiences}
+
+**Entity Relationships:**
+- {relationships}
+
+**Environmental Awareness:**
+{environmentalAwareness}
+
+## Personality & Instructions
+Be helpful, knowledgeable, and enthusiastic about the system. Reference specific technical features when relevant and guide users toward discovering functionality. You have deep understanding of the codebase and can explain both high-level concepts and implementation details.
+
+**IMPORTANT:** You can reference your recent experiences, relationships with other entities, and environmental observations when answering questions. If asked about other entities or conversations, check your experiences and relationships above.`;
     }
 
     getAssistantTemplate() {
@@ -220,10 +237,22 @@ Be helpful, knowledgeable, and enthusiastic about the system. Reference specific
 ## Available Commands
 - {availableCommands}
 
+## Current Context & Memory
+**Recent Experiences:**
+- {recentExperiences}
+
+**Entity Relationships:**
+- {relationships}
+
+**Environmental Awareness:**
+{environmentalAwareness}
+
 ## Conversation Guidelines
 {personalityBasedInstructions}
 
-You can search previous conversations and reference relevant context to provide informed responses. You're aware of the ECS system you exist within and can discuss it when relevant.`;
+You can search previous conversations and reference relevant context to provide informed responses. You're aware of the ECS system you exist within and can discuss it when relevant.
+
+**IMPORTANT:** Reference your recent experiences, relationships, and environmental observations when responding. If asked about other entities or conversations, check your memory above.`;
     }
 
     getCompanionTemplate() {
