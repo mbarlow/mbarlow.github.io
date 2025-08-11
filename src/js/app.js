@@ -103,6 +103,17 @@ class IndustrialPortfolio {
       // Switch chat target
       this.currentChatTarget = targetEntity;
       
+      // Clear current chat display
+      this.clearChatDisplay();
+      
+      // Load and display chat history
+      if (session.chatLogId) {
+        const chatLog = await persistenceSystem.storage.loadChatLog(session.chatLogId);
+        if (chatLog && chatLog.messages) {
+          this.displayChatHistory(chatLog.messages, targetEntity);
+        }
+      }
+      
       // Get entity info for confirmation message
       const brain = targetEntity.getComponent("BrainComponent");
       const entityName = targetEntity.tag || "Entity";
@@ -113,6 +124,44 @@ class IndustrialPortfolio {
     } catch (error) {
       console.error("Error switching to session:", error);
       this.addMessage("system", "Failed to switch to session");
+    }
+  }
+
+  // Clear the chat display
+  clearChatDisplay() {
+    const chatMessages = document.getElementById("chat-messages");
+    if (chatMessages) {
+      // Keep only the welcome message if it exists, otherwise clear all
+      const welcome = chatMessages.querySelector(".chat-welcome");
+      chatMessages.innerHTML = '';
+      if (welcome) {
+        chatMessages.appendChild(welcome);
+      }
+    }
+  }
+
+  // Display chat history from loaded session
+  displayChatHistory(messages, targetEntity) {
+    if (!messages || messages.length === 0) return;
+    
+    const chatInterface = this.world?.getSystem("chatInterface");
+    if (!chatInterface) return;
+    
+    // Sort messages by timestamp
+    const sortedMessages = [...messages].sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Display each message
+    for (const msg of sortedMessages) {
+      // Determine message type based on sender
+      let messageType = 'user';
+      if (msg.senderId === targetEntity.id) {
+        messageType = 'assistant';
+      } else if (msg.type === 'system') {
+        messageType = 'system';
+      }
+      
+      // Add the message to the display
+      chatInterface.addMessage(messageType, msg.content);
     }
   }
 
