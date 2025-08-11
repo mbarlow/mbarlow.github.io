@@ -247,6 +247,9 @@ export class AgentSystem extends System {
         });
       }
 
+      // Add @entity references to context for better understanding
+      context.entityReferences = this.extractEntityReferences(content);
+
       const response = await this.generateResponse(content, {
         model: brain.model !== 'human' ? brain.model : this.currentModel,
         entity: entity,
@@ -627,35 +630,82 @@ export class AgentSystem extends System {
     }
   }
 
+  extractEntityReferences(content) {
+    const entityRefs = [];
+    const atMentions = content.match(/@(\w+)/g);
+    
+    if (atMentions) {
+      atMentions.forEach(mention => {
+        const entityName = mention.substring(1).toLowerCase();
+        const entities = Array.from(this.world.entities.values());
+        const referencedEntity = entities.find(e => 
+          (e.tag && e.tag.toLowerCase().includes(entityName)) ||
+          (e.id && String(e.id).toLowerCase().includes(entityName))
+        );
+        
+        if (referencedEntity) {
+          entityRefs.push({
+            mention: mention,
+            entity: referencedEntity,
+            name: referencedEntity.tag || referencedEntity.id
+          });
+        }
+      });
+    }
+    
+    return entityRefs;
+  }
+
   checkForMessageRelay(content, entity, brain, playerEntity) {
     const lowerContent = content.toLowerCase();
     
-    // Look for message relay patterns
+    // Look for message relay patterns (including @entity syntax)
     const relayPatterns = [
+      /tell\s+@(\w+)\s+(.+)/i,
+      /send\s+@(\w+)\s+(.+)/i,
+      /give\s+@(\w+)\s+(.+)/i,
+      /relay\s+to\s+@(\w+):\s*(.+)/i,
+      /pass\s+this\s+to\s+@(\w+):\s*(.+)/i,
+      // Legacy patterns without @ symbol
       /tell\s+(\w+)\s+(.+)/i,
       /say\s+to\s+(\w+)\s+(.+)/i,
       /give\s+(\w+)\s+this\s+message:\s*(.+)/i,
       /relay\s+to\s+(\w+):\s*(.+)/i,
-      /pass\s+this\s+to\s+(\w+):\s*(.+)/i
+      /pass\s+this\s+to\s+(\w+):\s*(.+)/i,
+      // New @entity direct messaging patterns  
+      /hey\s+@(\w+),\s+send\s+@(\w+)\s+(.+)/i,
+      /@(\w+),?\s+send\s+@(\w+)\s+(.+)/i
     ];
     
     for (const pattern of relayPatterns) {
       const match = content.match(pattern);
       if (match) {
-        const targetName = match[1].toLowerCase();
-        const message = match[2].trim();
+        let targetName, message;
         
-        // Find the target entity
-        const entities = Array.from(this.world.entities.values());
-        const targetEntity = entities.find(e => 
-          (e.tag && e.tag.toLowerCase().includes(targetName)) ||
-          (e.id && String(e.id).toLowerCase().includes(targetName))
-        );
+        // Handle different pattern structures
+        if (pattern.source.includes('send\\s+@(\\w+)')) {
+          // Pattern: "hey @bot, send @origin my joke" or "@bot, send @origin my joke"
+          targetName = match[2]?.toLowerCase(); // Second capture group is the target
+          message = match[3]?.trim();           // Third capture group is the message
+        } else {
+          // Standard patterns: "tell @bot hello" or "give @origin this message"
+          targetName = match[1]?.toLowerCase(); // First capture group is the target
+          message = match[2]?.trim();           // Second capture group is the message
+        }
         
-        if (targetEntity && targetEntity.id !== entity.id) {
-          brain.addPendingMessage(targetEntity.id, message, playerEntity?.id);
-          console.log(`📝 ${entity.tag || entity.id} will relay message to ${targetEntity.tag || targetEntity.id}: "${message}"`);
-          return true;
+        if (targetName && message) {
+          // Find the target entity
+          const entities = Array.from(this.world.entities.values());
+          const targetEntity = entities.find(e => 
+            (e.tag && e.tag.toLowerCase().includes(targetName)) ||
+            (e.id && String(e.id).toLowerCase().includes(targetName))
+          );
+          
+          if (targetEntity && targetEntity.id !== entity.id) {
+            brain.addPendingMessage(targetEntity.id, message, playerEntity?.id);
+            console.log(`📝 ${entity.tag || entity.id} will relay message to ${targetEntity.tag || targetEntity.id}: "${message}"`);
+            return true;
+          }
         }
       }
     }

@@ -119,7 +119,10 @@ export class SystemPromptBuilder {
             '{environmentalAwareness}': systemContext.environmentalAwareness ? 
                 `Player present: ${systemContext.environmentalAwareness.playerPresent}, Nearby entities: ${systemContext.environmentalAwareness.nearbyEntities}, Active conversations: ${systemContext.environmentalAwareness.activeConversations}` : 
                 'No environmental data',
-            '{pendingMessages}': systemContext.pendingMessages ? systemContext.pendingMessages.join('\n- ') : 'No pending messages'
+            '{pendingMessages}': systemContext.pendingMessages ? systemContext.pendingMessages.join('\n- ') : 'No pending messages',
+            '{entityReferences}': systemContext.entityReferences && systemContext.entityReferences.length > 0 ? 
+                `Player mentioned: ${systemContext.entityReferences.map(ref => `${ref.mention} (${ref.name})`).join(', ')}` : 
+                'No entity references'
         };
 
         // Apply replacements
@@ -215,10 +218,28 @@ You can help users with:
 **Messages to Relay:**
 - {pendingMessages}
 
+**Entity References in Current Message:**
+{entityReferences}
+
+## @Entity Syntax Guide
+The player uses @entity syntax to reference specific entities:
+- @bot - refers to the patrol bot entity
+- @origin - refers to the origin marker entity  
+- @player - refers to the human player
+
+When the player uses @entity syntax:
+1. For questions: "Are you talking to @bot?" - they're asking about your relationship/conversations with that specific entity
+2. For messaging: "Tell @bot hello" or "Send @origin my joke" - they want you to relay a message
+3. For complex requests: "Hey @bot, send @origin my joke" - they're asking the bot to relay to origin
+
 ## Personality & Instructions
 Be helpful, knowledgeable, and enthusiastic about the system. Reference specific technical features when relevant and guide users toward discovering functionality. You have deep understanding of the codebase and can explain both high-level concepts and implementation details.
 
-**IMPORTANT:** You can reference your recent experiences, relationships with other entities, and environmental observations when answering questions. If asked about other entities or conversations, check your experiences and relationships above.`;
+**IMPORTANT:** 
+- Reference your recent experiences, relationships with other entities, and environmental observations when answering questions
+- When the player mentions @entities, use your relationship data to answer about those specific entities
+- If asked about other entities or conversations, check your experiences and relationships above
+- When asked to relay messages, confirm what you'll send and to whom`;
     }
 
     getAssistantTemplate() {
@@ -254,12 +275,30 @@ Be helpful, knowledgeable, and enthusiastic about the system. Reference specific
 **Messages to Relay:**
 - {pendingMessages}
 
+**Entity References in Current Message:**
+{entityReferences}
+
+## @Entity Syntax Guide
+The player uses @entity syntax to reference specific entities:
+- @bot - refers to you (the patrol bot)
+- @origin - refers to the origin marker entity  
+- @player - refers to the human player
+
+When the player uses @entity syntax:
+1. For questions: "Are you talking to @origin?" - they're asking about your relationship/conversations with that entity
+2. For messaging: "Tell @origin hello" or "Send @origin my joke" - they want you to relay a message
+3. For complex requests: "Hey @bot, send @origin my joke" - they're asking you to relay to origin
+
 ## Conversation Guidelines
 {personalityBasedInstructions}
 
 You can search previous conversations and reference relevant context to provide informed responses. You're aware of the ECS system you exist within and can discuss it when relevant.
 
-**IMPORTANT:** Reference your recent experiences, relationships, and environmental observations when responding. If asked about other entities or conversations, check your memory above.`;
+**IMPORTANT:** 
+- Reference your recent experiences, relationships, and environmental observations when responding
+- When the player mentions @entities, use your relationship data to answer about those specific entities
+- If asked about other entities or conversations, check your memory above
+- When asked to relay messages, confirm what you'll send and to whom`;
     }
 
     getCompanionTemplate() {
