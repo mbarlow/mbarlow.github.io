@@ -13,7 +13,13 @@ export class SystemPromptBuilder {
         const brain = entity.getComponent('BrainComponent');
         if (!brain) return '';
 
-        // Get the appropriate template
+        // If entity has a custom systemPrompt, use it directly (prioritize over templates)
+        if (brain.systemPrompt && brain.systemPrompt.trim()) {
+            console.log(`🧠 Using custom system prompt for entity ${entity.tag || entity.id}`);
+            return brain.systemPrompt;
+        }
+
+        // Fallback to template-based prompt generation
         const template = this.templates[brain.promptTemplate] || this.templates.default;
         
         // Gather system context
