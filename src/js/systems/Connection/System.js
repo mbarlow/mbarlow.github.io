@@ -8,6 +8,7 @@ export class ConnectionSystem extends System {
         this.world = world;
         this.scene = scene;
         this.connectors = new Map(); // connectionKey -> connectorData
+        this.time = 0; // Track time for organic animations
         
         // Materials for different connection states
         this.materials = {
@@ -113,22 +114,36 @@ export class ConnectionSystem extends System {
         const startPos = new THREE.Vector3().copy(transform1.position);
         const endPos = new THREE.Vector3().copy(transform2.position);
         
-        // Calculate S-curve control points
+        // Calculate S-curve control points with variation
         const direction = new THREE.Vector3().subVectors(endPos, startPos);
         const distance = startPos.distanceTo(endPos);
         const perpendicular = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
-        const curveStrength = 0.3 * distance;
-        const heightOffset = 0.15 * distance;
+        
+        // Add randomized variation to curve parameters
+        const baseStrength = 0.3;
+        const strengthVariation = (Math.random() - 0.5) * 0.3; // ±0.15 variation
+        const curveStrength = (baseStrength + strengthVariation) * distance;
+        
+        const baseHeight = 0.15;
+        const heightVariation = (Math.random() - 0.5) * 0.2; // ±0.1 variation
+        const heightOffset = (baseHeight + heightVariation) * distance;
+        
+        // Randomize control point positions along the curve
+        const control1Pos = 0.25 + (Math.random() - 0.5) * 0.1; // 0.2 to 0.3
+        const control2Pos = 0.75 + (Math.random() - 0.5) * 0.1; // 0.7 to 0.8
+        
+        // Add some asymmetry to the curve
+        const asymmetryFactor = (Math.random() - 0.5) * 0.4;
         
         const control1 = new THREE.Vector3()
-            .addVectors(startPos, direction.clone().multiplyScalar(0.25))
-            .add(perpendicular.clone().multiplyScalar(curveStrength))
+            .addVectors(startPos, direction.clone().multiplyScalar(control1Pos))
+            .add(perpendicular.clone().multiplyScalar(curveStrength * (1 + asymmetryFactor)))
             .add(new THREE.Vector3(0, heightOffset, 0));
         
         const control2 = new THREE.Vector3()
-            .addVectors(startPos, direction.clone().multiplyScalar(0.75))
-            .add(perpendicular.clone().multiplyScalar(-curveStrength))
-            .add(new THREE.Vector3(0, heightOffset * 0.5, 0));
+            .addVectors(startPos, direction.clone().multiplyScalar(control2Pos))
+            .add(perpendicular.clone().multiplyScalar(-curveStrength * (1 - asymmetryFactor)))
+            .add(new THREE.Vector3(0, heightOffset * (0.5 + Math.random() * 0.3), 0));
         
         // Create Bezier curve
         const curve = new THREE.CubicBezierCurve3(
@@ -149,7 +164,7 @@ export class ConnectionSystem extends System {
         const mesh = new THREE.Mesh(tubeGeometry, material);
         this.scene.add(mesh);
         
-        // Store connector data
+        // Store connector data with curve parameters for animation
         const connectorData = {
             mesh,
             curve,
@@ -161,19 +176,32 @@ export class ConnectionSystem extends System {
             lastUpdatePos1: startPos.clone(),
             lastUpdatePos2: endPos.clone(),
             particles: null,
-            particleTime: 0
+            particleTime: 0,
+            // Store curve parameters for organic animation
+            baseControl1: control1.clone(),
+            baseControl2: control2.clone(),
+            wavePhase: Math.random() * Math.PI * 2, // Random starting phase
+            waveSpeed: 0.5 + Math.random() * 1.0, // 0.5-1.5 speed variation
+            waveAmplitude: 0.05 + Math.random() * 0.1, // Small wave amplitude
+            curveParams: {
+                strengthVariation,
+                heightVariation,
+                control1Pos,
+                control2Pos,
+                asymmetryFactor
+            }
         };
         
         this.connectors.set(key, connectorData);
         return connectorData;
     }
 
-    updateConnector(entity1, entity2) {
+    updateConnector(entity1, entity2, applyWave = true) {
         const key = this.createConnectorKey(entity1.id, entity2.id);
         const connectorData = this.connectors.get(key);
         if (!connectorData) return;
         
-        const { curve, mesh, segments, radius } = connectorData;
+        const { curve, mesh, segments, radius, curveParams } = connectorData;
         
         // Get updated positions
         const transform1 = entity1.getComponent(TransformComponent);
@@ -184,22 +212,57 @@ export class ConnectionSystem extends System {
         const startPos = new THREE.Vector3().copy(transform1.position);
         const endPos = new THREE.Vector3().copy(transform2.position);
         
-        // Recalculate S-curve
+        // Recalculate base positions if entities moved
         const direction = new THREE.Vector3().subVectors(endPos, startPos);
         const distance = startPos.distanceTo(endPos);
-        const perpendicular = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
-        const curveStrength = 0.3 * distance;
-        const heightOffset = 0.15 * distance;
         
-        const control1 = new THREE.Vector3()
-            .addVectors(startPos, direction.clone().multiplyScalar(0.25))
-            .add(perpendicular.clone().multiplyScalar(curveStrength))
-            .add(new THREE.Vector3(0, heightOffset, 0));
+        // Update base control points if positions changed significantly
+        const moved = connectorData.lastUpdatePos1.distanceTo(startPos) > 0.1 || 
+                     connectorData.lastUpdatePos2.distanceTo(endPos) > 0.1;
         
-        const control2 = new THREE.Vector3()
-            .addVectors(startPos, direction.clone().multiplyScalar(0.75))
-            .add(perpendicular.clone().multiplyScalar(-curveStrength))
-            .add(new THREE.Vector3(0, heightOffset * 0.5, 0));
+        if (moved || !connectorData.baseControl1) {
+            // Use stored variation parameters for consistency
+            const params = curveParams || {};
+            const perpendicular = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
+            const curveStrength = (0.3 + (params.strengthVariation || 0)) * distance;
+            const heightOffset = (0.15 + (params.heightVariation || 0)) * distance;
+            const control1Pos = params.control1Pos || 0.25;
+            const control2Pos = params.control2Pos || 0.75;
+            const asymmetryFactor = params.asymmetryFactor || 0;
+            
+            connectorData.baseControl1 = new THREE.Vector3()
+                .addVectors(startPos, direction.clone().multiplyScalar(control1Pos))
+                .add(perpendicular.clone().multiplyScalar(curveStrength * (1 + asymmetryFactor)))
+                .add(new THREE.Vector3(0, heightOffset, 0));
+            
+            connectorData.baseControl2 = new THREE.Vector3()
+                .addVectors(startPos, direction.clone().multiplyScalar(control2Pos))
+                .add(perpendicular.clone().multiplyScalar(-curveStrength * (1 - asymmetryFactor)))
+                .add(new THREE.Vector3(0, heightOffset * (0.5 + (params.heightVariation || 0) * 2), 0));
+        }
+        
+        // Apply organic wave animation
+        let control1 = connectorData.baseControl1.clone();
+        let control2 = connectorData.baseControl2.clone();
+        
+        if (applyWave && connectorData.waveAmplitude) {
+            const waveOffset = Math.sin(this.time * connectorData.waveSpeed + connectorData.wavePhase) * 
+                             connectorData.waveAmplitude * distance;
+            const waveOffset2 = Math.cos(this.time * connectorData.waveSpeed * 0.7 + connectorData.wavePhase) * 
+                              connectorData.waveAmplitude * distance * 0.5;
+            
+            control1.add(new THREE.Vector3(
+                waveOffset * Math.sin(connectorData.wavePhase),
+                waveOffset2,
+                waveOffset * Math.cos(connectorData.wavePhase)
+            ));
+            
+            control2.add(new THREE.Vector3(
+                -waveOffset2 * Math.sin(connectorData.wavePhase + 1),
+                waveOffset * 0.5,
+                -waveOffset2 * Math.cos(connectorData.wavePhase + 1)
+            ));
+        }
         
         // Update curve control points
         curve.v0.copy(startPos);
@@ -357,6 +420,9 @@ export class ConnectionSystem extends System {
     }
 
     update(deltaTime) {
+        // Update time for organic animations
+        this.time += deltaTime;
+        
         const entities = this.world.getEntitiesWithComponent(Connection);
         
         // Update all existing connectors
@@ -374,11 +440,16 @@ export class ConnectionSystem extends System {
                 const moved1 = connectorData.lastUpdatePos1.distanceTo(currentPos1) > threshold;
                 const moved2 = connectorData.lastUpdatePos2.distanceTo(currentPos2) > threshold;
                 
-                if (moved1 || moved2) {
-                    this.updateConnector(connectorData.entity1, connectorData.entity2);
+                // Always update for organic movement, but only regenerate geometry if moved significantly
+                const shouldRegenerateGeometry = moved1 || moved2;
+                
+                if (shouldRegenerateGeometry) {
                     connectorData.lastUpdatePos1.copy(currentPos1);
                     connectorData.lastUpdatePos2.copy(currentPos2);
                 }
+                
+                // Apply organic wave animation even without movement
+                this.updateConnector(connectorData.entity1, connectorData.entity2, true);
             }
             
             // Add pulsing animation for active connections
