@@ -37,6 +37,18 @@ export class BrainComponent extends Component {
         this.longTermMemory = config.longTermMemory || [];
         this.contextWindow = config.contextWindow || 10; // messages to remember
         
+        // Experience logging for emergent personality development
+        this.experiences = config.experiences || [];
+        this.observations = config.observations || [];
+        this.relationships = new Map(); // entityId -> relationship data
+        this.environmentalAwareness = {
+            lastPlayerPosition: null,
+            lastPlayerAction: null,
+            nearbyEntities: [],
+            systemState: 'unknown',
+            interestingEvents: []
+        };
+        
         // Behavioral modifiers
         this.responseStyle = config.responseStyle || 'balanced';
         this.verbosity = config.verbosity || 0.5;
@@ -158,5 +170,188 @@ export class BrainComponent extends Component {
 
     removeCommandAccess(command) {
         this.commandAccess = this.commandAccess.filter(cmd => cmd !== command);
+    }
+    
+    // Experience and observation tracking
+    logExperience(type, description, context = {}) {
+        const experience = {
+            type, // 'interaction', 'observation', 'thought', 'discovery', etc.
+            description,
+            context,
+            timestamp: Date.now(),
+            emotional_impact: this.assessEmotionalImpact(type, context)
+        };
+        
+        this.experiences.push(experience);
+        
+        // Keep experiences manageable - remove oldest if too many
+        if (this.experiences.length > 100) {
+            this.experiences.shift();
+        }
+        
+        // Update long-term personality traits based on experiences
+        this.updatePersonalityFromExperience(experience);
+    }
+    
+    observeEnvironment(world, entity) {
+        // Gather environmental observations
+        const nearbyEntities = this.findNearbyEntities(world, entity);
+        const playerEntity = world.getEntitiesByTag('player')[0];
+        const systemHealth = this.assessSystemHealth(world);
+        
+        const observation = {
+            nearbyEntities: nearbyEntities.map(e => ({
+                id: e.id,
+                tag: e.tag,
+                position: e.getComponent('TransformComponent')?.position,
+                state: e.getComponent('VoxelIndicatorComponent')?.state || 'unknown'
+            })),
+            playerPresent: !!playerEntity,
+            playerPosition: playerEntity?.getComponent('TransformComponent')?.position,
+            systemLoad: systemHealth.activeConnections || 0,
+            activeConversations: systemHealth.conversations || 0,
+            timestamp: Date.now()
+        };
+        
+        // Note interesting changes
+        if (this.environmentalAwareness.lastPlayerPosition && playerEntity) {
+            const playerMoved = this.calculateDistance(
+                this.environmentalAwareness.lastPlayerPosition,
+                observation.playerPosition
+            ) > 1.0;
+            
+            if (playerMoved) {
+                this.logExperience('observation', 'Player moved to a new location', {
+                    from: this.environmentalAwareness.lastPlayerPosition,
+                    to: observation.playerPosition
+                });
+            }
+        }
+        
+        // Update awareness
+        this.environmentalAwareness = {
+            ...observation,
+            lastPlayerPosition: observation.playerPosition,
+            interestingEvents: this.environmentalAwareness.interestingEvents.slice(-10) // Keep last 10
+        };
+    }
+    
+    updateRelationship(entityId, interactionType, sentiment = 'neutral') {
+        if (!this.relationships.has(entityId)) {
+            this.relationships.set(entityId, {
+                entityId,
+                interactions: 0,
+                lastInteraction: null,
+                sentiment: 'neutral',
+                topics_discussed: [],
+                memorable_moments: []
+            });
+        }
+        
+        const relationship = this.relationships.get(entityId);
+        relationship.interactions++;
+        relationship.lastInteraction = Date.now();
+        
+        // Update sentiment (simple moving average)
+        const sentimentValue = sentiment === 'positive' ? 1 : sentiment === 'negative' ? -1 : 0;
+        const currentValue = relationship.sentiment === 'positive' ? 1 : relationship.sentiment === 'negative' ? -1 : 0;
+        const newValue = (currentValue * 0.8) + (sentimentValue * 0.2);
+        
+        relationship.sentiment = newValue > 0.3 ? 'positive' : newValue < -0.3 ? 'negative' : 'neutral';
+        
+        this.relationships.set(entityId, relationship);
+    }
+    
+    // Generate contextual conversation starters based on experiences
+    generateConversationContext(otherEntity) {
+        const recentExperiences = this.experiences.slice(-5);
+        const relationship = this.relationships.get(otherEntity.id);
+        const observations = this.environmentalAwareness;
+        
+        // Build rich context for AI generation
+        return {
+            recentExperiences: recentExperiences.map(exp => `${exp.type}: ${exp.description}`),
+            relationship: relationship ? {
+                interactions: relationship.interactions,
+                sentiment: relationship.sentiment,
+                topics: relationship.topics_discussed.slice(-3)
+            } : null,
+            observations: {
+                playerPresent: observations.playerPresent,
+                nearbyEntities: observations.nearbyEntities.length,
+                systemLoad: observations.systemLoad,
+                interestingEvents: observations.interestingEvents.slice(-3)
+            },
+            personality: this.personality,
+            interests: this.interests,
+            expertise: this.expertise,
+            currentEmotion: this.emotion,
+            energy: this.energy,
+            systemPrompt: this.systemPrompt
+        };
+    }
+    
+    // Helper methods
+    findNearbyEntities(world, entity, radius = 15) {
+        const transform = entity.getComponent('TransformComponent');
+        if (!transform) return [];
+        
+        return Array.from(world.entities.values())
+            .filter(e => e.id !== entity.id && e.getComponent('TransformComponent'))
+            .filter(e => {
+                const otherTransform = e.getComponent('TransformComponent');
+                return this.calculateDistance(transform.position, otherTransform.position) <= radius;
+            });
+    }
+    
+    calculateDistance(pos1, pos2) {
+        if (!pos1 || !pos2) return Infinity;
+        const dx = pos1.x - pos2.x;
+        const dy = pos1.y - pos2.y;
+        const dz = pos1.z - pos2.z;
+        return Math.sqrt(dx*dx + dy*dy + dz*dz);
+    }
+    
+    assessSystemHealth(world) {
+        const connectionSystem = world.getSystem('connection');
+        const autonomousChatSystem = world.getSystem('autonomousChat');
+        
+        return {
+            activeConnections: connectionSystem?.connectors?.size || 0,
+            conversations: autonomousChatSystem?.activeConversations?.size || 0,
+            entities: world.entities.size
+        };
+    }
+    
+    assessEmotionalImpact(type, context) {
+        // Simple emotional impact assessment
+        switch(type) {
+            case 'positive_interaction': return 0.3;
+            case 'discovery': return 0.2;
+            case 'conflict': return -0.2;
+            case 'observation': return 0.1;
+            default: return 0;
+        }
+    }
+    
+    updatePersonalityFromExperience(experience) {
+        // Gradually evolve personality based on experiences
+        // This is subtle and happens over many experiences
+        const impact = experience.emotional_impact * 0.01; // Very small changes
+        
+        if (experience.type === 'positive_interaction') {
+            this.personality.agreeableness += impact;
+            this.personality.extraversion += impact * 0.5;
+        } else if (experience.type === 'discovery') {
+            this.personality.openness += impact;
+        } else if (experience.type === 'conflict') {
+            this.personality.neuroticism += Math.abs(impact);
+            this.personality.agreeableness -= Math.abs(impact);
+        }
+        
+        // Keep personality traits in bounds
+        Object.keys(this.personality).forEach(trait => {
+            this.personality[trait] = Math.max(0, Math.min(1, this.personality[trait]));
+        });
     }
 }
