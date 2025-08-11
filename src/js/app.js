@@ -592,6 +592,30 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.log("No persistence system found");
     }
   };
+
+  // Autonomous Chat System Controls
+  window.autonomousChat = {
+    enable: () => {
+      const system = window.industrialPortfolio.world.getSystem("autonomousChat");
+      if (system) system.enable();
+    },
+    disable: () => {
+      const system = window.industrialPortfolio.world.getSystem("autonomousChat");
+      if (system) system.disable();
+    },
+    trigger: () => {
+      const system = window.industrialPortfolio.world.getSystem("autonomousChat");
+      if (system) system.triggerConversation();
+    },
+    status: () => {
+      const system = window.industrialPortfolio.world.getSystem("autonomousChat");
+      if (system) return system.getStatus();
+    },
+    setRate: (interval) => {
+      const system = window.industrialPortfolio.world.getSystem("autonomousChat");
+      if (system) system.setConversationRate(interval);
+    }
+  };
 });
 
 // Handle cleanup

@@ -17,6 +17,7 @@ import {
   ChatInterfaceSystem,
   SessionManagementSystem,
   CommandSystem,
+  AutonomousChatSystem,
 } from "../index.js";
 import {
   Connection,
@@ -126,6 +127,11 @@ export class InitializationSystem extends System {
         // Add session system
         const sessionSystem = new SessionSystem(this.world);
         this.world.addSystem(sessionSystem, "session");
+
+        // Add autonomous chat system for entity-to-entity conversations
+        const autonomousChatSystem = new AutonomousChatSystem();
+        this.world.addSystem(autonomousChatSystem, "autonomousChat");
+        autonomousChatSystem.init(this.world);
 
         // Add persistence system
         const persistenceSystem = new PersistenceSystem(this.world);
