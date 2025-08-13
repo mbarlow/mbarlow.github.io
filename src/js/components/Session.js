@@ -1,4 +1,5 @@
 import { Component } from '../core/Component.js';
+import { generateUUID } from '../utils/uuid.js';
 
 export class Session extends Component {
     constructor() {
@@ -7,13 +8,13 @@ export class Session extends Component {
     }
 
     createSession(connectionId, participants) {
-        const sessionId = crypto.randomUUID();
+        const sessionId = generateUUID();
         const sessionData = {
             id: sessionId,
             connectionId,
             participants: new Set(participants),
             state: 'active',
-            chatLogId: crypto.randomUUID(),
+            chatLogId: generateUUID(),
             title: null,
             keywords: [],
             createdAt: Date.now(),

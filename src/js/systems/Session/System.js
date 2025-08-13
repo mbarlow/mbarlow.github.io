@@ -4,6 +4,7 @@ import { Session } from '../../components/Session.js';
 import { ChatLog } from '../../components/ChatLog.js';
 import { BrainComponent } from '../../components/BrainComponent.js';
 import { VoxelIndicatorComponent } from '../../components/VoxelIndicatorComponent.js';
+import { generateUUID } from '../../utils/uuid.js';
 
 export class SessionSystem extends System {
     constructor(world) {
@@ -26,7 +27,7 @@ export class SessionSystem extends System {
         // Create connection if it doesn't exist
         if (!conn1.hasConnectionTo(entity2.id)) {
             const connectionData = {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 state: 'active'
             };
             conn1.addConnection(entity2.id, connectionData);

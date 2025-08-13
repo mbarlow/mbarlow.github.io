@@ -1,4 +1,5 @@
 import { Component } from '../core/Component.js';
+import { generateUUID } from '../utils/uuid.js';
 
 export class ChatLog extends Component {
     constructor() {
@@ -24,7 +25,7 @@ export class ChatLog extends Component {
         }
 
         const messageData = {
-            id: message.id || crypto.randomUUID(),
+            id: message.id || generateUUID(),
             senderId: message.senderId,
             content: message.content,
             timestamp: message.timestamp || Date.now(),

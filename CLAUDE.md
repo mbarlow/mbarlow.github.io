@@ -8,6 +8,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run dev` - Start development server on port 3000
 - `npm run serve` - Start live-server with default settings
 
+### Git Operations (Slash Commands)
+- `/save` - Git add all changes, write a conventional commit message, commit and push to remote
+  - Automatically stages all changes
+  - Generates appropriate conventional commit message based on changes
+  - Commits with co-author attribution
+  - Pushes to current branch
+
 ## Architecture Overview
 
 This is a chat interface with ecs engine represented as a 3D (optional FPS) mode experience:
