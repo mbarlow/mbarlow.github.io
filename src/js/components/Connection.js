@@ -1,4 +1,5 @@
 import { Component } from '../core/Component.js';
+import { generateUUID } from '../utils/uuid.js';
 
 export class Connection extends Component {
     constructor() {
@@ -8,7 +9,7 @@ export class Connection extends Component {
 
     addConnection(targetEntityId, connectionData) {
         this.connections.set(targetEntityId, {
-            id: connectionData.id || crypto.randomUUID(),
+            id: connectionData.id || generateUUID(),
             targetEntityId,
             sessionId: connectionData.sessionId || null,
             createdAt: connectionData.createdAt || Date.now(),
