@@ -409,7 +409,8 @@ export class SessionManagementSystem extends System {
             return;
         }
         
-        // Use the NEW ChatUISystem to switch to DM - this will handle everything properly!
+        // Use the NEW ChatUISystem to switch to DM - pass entity ID (not UUID)
+        // The ChatUISystem will handle UUID conversion internally
         await chatUISystem.switchToDM(targetEntity.id);
         
         console.log(`✅ Successfully switched to DM using ChatUISystem with entity: ${targetEntity.tag || targetEntity.id}`);

@@ -24,11 +24,25 @@ export class ChatSystem extends System {
         // Initialize storage
         await this.storage.init();
         
+        // Force database upgrade if needed for entities store
+        await this.storage.forceUpgrade();
+        
         // Create default channels if they don't exist
         await this.ensureDefaultChannels();
         
         this.initialized = true;
+        
+        // Expose debug methods globally
+        if (typeof window !== 'undefined') {
+            window.clearChatData = () => this.clearAllData();
+            window.deleteChatDB = () => this.deleteDatabase();
+        }
+        
         console.log('✅ ChatSystem initialized');
+        console.log('🔧 Debug: Use clearChatData() or deleteChatDB() in console to reset data');
+        
+        console.log('🔧 Simple entity storage: entities are stored by name with regular UUIDs');
+        console.log('🔧 Debug: Use clearChatData() or deleteChatDB() in console to reset data');
     }
 
     /**
@@ -75,9 +89,16 @@ export class ChatSystem extends System {
             return null;
         }
 
-        // Check if author is a member (or add them)
-        if (!channel.hasMember(authorId)) {
-            channel.addMember(authorId);
+        // Get entity name for consistent storage
+        const worldEntity = this.world?.entities?.get(authorId);
+        const entityName = worldEntity?.tag || worldEntity?.id || authorId;
+        
+        // Get or create entity data for consistent UUID
+        const authorEntity = await this.storage.getOrCreateEntity(entityName, 'entity');
+        
+        // Check if author is a member (or add them) using UUID
+        if (!channel.hasMember(authorEntity.uuid)) {
+            channel.addMember(authorEntity.uuid);
             await this.storage.saveChannel(channel);
         }
 
@@ -85,7 +106,7 @@ export class ChatSystem extends System {
             type: 'channel',
             targetId: channel.id,
             content: content,
-            author: authorId
+            author: authorEntity.uuid
         });
 
         await this.storage.saveMessage(message);
@@ -108,19 +129,29 @@ export class ChatSystem extends System {
             return null;
         }
 
+        // Get entity names for consistent storage
+        const fromWorldEntity = this.world?.entities?.get(fromEntityId);
+        const toWorldEntity = this.world?.entities?.get(toEntityId);
+        const fromEntityName = fromWorldEntity?.tag || fromWorldEntity?.id || fromEntityId;
+        const toEntityName = toWorldEntity?.tag || toWorldEntity?.id || toEntityId;
+        
+        // Get or create entity data for consistent UUIDs
+        const fromEntity = await this.storage.getOrCreateEntity(fromEntityName, 'entity');
+        const toEntity = await this.storage.getOrCreateEntity(toEntityName, 'entity');
+        
         const message = new Message({
             type: 'dm',
-            targetId: toEntityId,
+            targetId: toEntity.uuid,
             content: content,
-            author: fromEntityId
+            author: fromEntity.uuid
         });
 
         await this.storage.saveMessage(message);
-        console.log(`💬 DM sent from ${fromEntityId} to ${toEntityId}: ${content.substring(0, 50)}...`);
+        console.log(`💬 DM sent from ${fromEntity.name} to ${toEntity.name}: ${content.substring(0, 50)}...`);
 
         // Trigger UI update if this is the active DM
         if (this.activeType === 'dm' && 
-            (this.activeTarget === toEntityId || this.activeTarget === fromEntityId)) {
+            (this.activeTarget === toEntity.uuid || this.activeTarget === fromEntity.uuid)) {
             this.notifyNewMessage(message);
         }
 
@@ -137,10 +168,17 @@ export class ChatSystem extends System {
             return false;
         }
 
-        if (!channel.hasMember(entityId)) {
-            channel.addMember(entityId);
+        // Get entity name for consistent storage
+        const worldEntity = this.world?.entities?.get(entityId);
+        const entityName = worldEntity?.tag || worldEntity?.id || entityId;
+        
+        // Get or create entity data for consistent UUID
+        const entity = await this.storage.getOrCreateEntity(entityName, 'entity');
+        
+        if (!channel.hasMember(entity.uuid)) {
+            channel.addMember(entity.uuid);
             await this.storage.saveChannel(channel);
-            console.log(`🤖 Entity ${entityId} joined #${channelName}`);
+            console.log(`🤖 Entity ${entity.name} joined #${channelName}`);
             return true;
         }
 
@@ -168,18 +206,28 @@ export class ChatSystem extends System {
      * Get DM messages between two entities
      */
     async getDMMessages(entityId1, entityId2, limit = 100) {
-        // Get ALL DM messages and filter properly to avoid cross-contamination
+        // Get entity names and their UUIDs
+        const entity1World = this.world?.entities?.get(entityId1);
+        const entity2World = this.world?.entities?.get(entityId2);
+        const entity1Name = entity1World?.tag || entity1World?.id || entityId1;
+        const entity2Name = entity2World?.tag || entity2World?.id || entityId2;
+        
+        // Get entity data (will find existing by name)
+        const entity1Data = await this.storage.getOrCreateEntity(entity1Name, 'entity');
+        const entity2Data = await this.storage.getOrCreateEntity(entity2Name, 'entity');
+        
+        // Get ALL DM messages and filter by UUIDs
         const allDMMessages = await this.storage.getAllMessages('dm');
 
-        // Filter to only include messages between these two specific entities
+        // Filter to only include messages between these two specific entities (by UUID)
         const filteredMessages = allDMMessages.filter(msg => 
             msg.type === 'dm' && (
-                (msg.author === entityId1 && msg.targetId === entityId2) ||
-                (msg.author === entityId2 && msg.targetId === entityId1)
+                (msg.author === entity1Data.uuid && msg.targetId === entity2Data.uuid) ||
+                (msg.author === entity2Data.uuid && msg.targetId === entity1Data.uuid)
             )
         );
 
-        console.log(`💬 Found ${filteredMessages.length} DM messages between ${entityId1} and ${entityId2}`);
+        console.log(`💬 Found ${filteredMessages.length} DM messages between ${entity1Name} and ${entity2Name}`);
 
         // Sort by timestamp and limit
         filteredMessages.sort((a, b) => new Date(a.created) - new Date(b.created));
@@ -317,5 +365,21 @@ export class ChatSystem extends System {
             activeType: this.activeType,
             channels: channels.map(c => ({ name: c.name, members: c.getMemberCount() }))
         };
+    }
+
+    /**
+     * Clear all chat data (exposed for debugging)
+     */
+    async clearAllData() {
+        await this.storage.clearAll();
+        console.log('🗑️ All chat data cleared');
+    }
+
+    /**
+     * Delete entire database (exposed for debugging)
+     */
+    async deleteDatabase() {
+        await this.storage.deleteDatabase();
+        console.log('🗑️ Database deleted - please refresh the page');
     }
 }

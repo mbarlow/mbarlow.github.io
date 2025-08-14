@@ -1,5 +1,7 @@
 import { Message } from '../components/Message.js';
 import { Channel } from '../components/Channel.js';
+import { EntityData } from '../components/EntityData.js';
+import { UUID } from '../utils/UUID.js';
 
 /**
  * Simple IndexedDB storage for messages and channels
@@ -7,7 +9,7 @@ import { Channel } from '../components/Channel.js';
 export class ChatStorage {
     constructor() {
         this.dbName = 'ChatDB';
-        this.version = 1;
+        this.version = 3; // Increment version to force entities store creation
         this.db = null;
     }
 
@@ -46,6 +48,14 @@ export class ChatStorage {
                 if (!db.objectStoreNames.contains('channels')) {
                     const channelsStore = db.createObjectStore('channels', { keyPath: 'id' });
                     channelsStore.createIndex('name', 'name', { unique: true });
+                }
+
+                // Entities store
+                if (!db.objectStoreNames.contains('entities')) {
+                    const entitiesStore = db.createObjectStore('entities', { keyPath: 'uuid' });
+                    entitiesStore.createIndex('name', 'name', { unique: false });
+                    entitiesStore.createIndex('tag', 'tag', { unique: false });
+                    entitiesStore.createIndex('type', 'type', { unique: false });
                 }
 
                 console.log('📦 ChatStorage database schema created');
@@ -267,13 +277,207 @@ export class ChatStorage {
      */
     async clearAll() {
         if (this.db) {
-            const transaction = this.db.transaction(['messages', 'channels'], 'readwrite');
-            await transaction.objectStore('messages').clear();
-            await transaction.objectStore('channels').clear();
+            try {
+                const storeNames = ['messages', 'channels'];
+                // Only include entities store if it exists
+                if (this.db.objectStoreNames.contains('entities')) {
+                    storeNames.push('entities');
+                }
+                const transaction = this.db.transaction(storeNames, 'readwrite');
+                await transaction.objectStore('messages').clear();
+                await transaction.objectStore('channels').clear();
+                if (this.db.objectStoreNames.contains('entities')) {
+                    await transaction.objectStore('entities').clear();
+                }
+            } catch (error) {
+                console.warn('Error clearing IndexedDB stores:', error);
+            }
         }
         
         localStorage.removeItem('chat_messages');
         localStorage.removeItem('chat_channels');
+        localStorage.removeItem('chat_entities');
         console.log('🗑️ All chat data cleared');
+    }
+
+    /**
+     * Delete the entire database and start fresh
+     */
+    async deleteDatabase() {
+        if (this.db) {
+            this.db.close();
+            this.db = null;
+        }
+        
+        return new Promise((resolve, reject) => {
+            const deleteReq = indexedDB.deleteDatabase(this.dbName);
+            deleteReq.onerror = () => reject(deleteReq.error);
+            deleteReq.onsuccess = () => {
+                console.log('🗑️ Database completely deleted');
+                localStorage.removeItem('chat_messages');
+                localStorage.removeItem('chat_channels');
+                localStorage.removeItem('chat_entities');
+                resolve();
+            };
+        });
+    }
+
+    /**
+     * Force database upgrade if needed
+     */
+    async forceUpgrade() {
+        if (this.db && !this.db.objectStoreNames.contains('entities')) {
+            console.log('🔄 Database needs upgrade for entities store');
+            this.db.close();
+            this.db = null;
+            // Re-initialize with new version
+            await this.init();
+            console.log('✅ Database upgraded to version', this.version);
+        }
+    }
+
+    /**
+     * Save or update an entity
+     */
+    async saveEntity(entityData) {
+        if (!this.db) {
+            // Fallback to localStorage
+            const entities = JSON.parse(localStorage.getItem('chat_entities') || '[]');
+            const index = entities.findIndex(e => e.uuid === entityData.uuid);
+            if (index >= 0) {
+                entities[index] = entityData.toObject();
+            } else {
+                entities.push(entityData.toObject());
+            }
+            localStorage.setItem('chat_entities', JSON.stringify(entities));
+            return;
+        }
+
+        try {
+            // Check if entities store exists
+            if (!this.db.objectStoreNames.contains('entities')) {
+                console.warn('Entities store not found, using localStorage fallback');
+                const entities = JSON.parse(localStorage.getItem('chat_entities') || '[]');
+                const index = entities.findIndex(e => e.uuid === entityData.uuid);
+                if (index >= 0) {
+                    entities[index] = entityData.toObject();
+                } else {
+                    entities.push(entityData.toObject());
+                }
+                localStorage.setItem('chat_entities', JSON.stringify(entities));
+                return;
+            }
+
+            const transaction = this.db.transaction(['entities'], 'readwrite');
+            const store = transaction.objectStore('entities');
+            await store.put(entityData.toObject());
+        } catch (error) {
+            console.warn('Error saving entity to IndexedDB, using localStorage:', error);
+            const entities = JSON.parse(localStorage.getItem('chat_entities') || '[]');
+            const index = entities.findIndex(e => e.uuid === entityData.uuid);
+            if (index >= 0) {
+                entities[index] = entityData.toObject();
+            } else {
+                entities.push(entityData.toObject());
+            }
+            localStorage.setItem('chat_entities', JSON.stringify(entities));
+        }
+    }
+
+    /**
+     * Get entity by UUID
+     */
+    async getEntityByUuid(uuid) {
+        if (!this.db) {
+            // Fallback to localStorage
+            const entities = JSON.parse(localStorage.getItem('chat_entities') || '[]');
+            const entityData = entities.find(e => e.uuid === uuid);
+            return entityData ? EntityData.fromObject(entityData) : null;
+        }
+
+        try {
+            // Check if entities store exists
+            if (!this.db.objectStoreNames.contains('entities')) {
+                console.warn('Entities store not found, using localStorage fallback');
+                const entities = JSON.parse(localStorage.getItem('chat_entities') || '[]');
+                const entityData = entities.find(e => e.uuid === uuid);
+                return entityData ? EntityData.fromObject(entityData) : null;
+            }
+
+            const transaction = this.db.transaction(['entities'], 'readonly');
+            const store = transaction.objectStore('entities');
+            const result = await store.get(uuid);
+            return result ? EntityData.fromObject(result) : null;
+        } catch (error) {
+            console.warn('Error accessing entities store, using localStorage:', error);
+            const entities = JSON.parse(localStorage.getItem('chat_entities') || '[]');
+            const entityData = entities.find(e => e.uuid === uuid);
+            return entityData ? EntityData.fromObject(entityData) : null;
+        }
+    }
+
+    /**
+     * Get entity by name/tag (for lookup when creating)
+     */
+    async getEntityByName(name) {
+        if (!this.db) {
+            // Fallback to localStorage
+            const entities = JSON.parse(localStorage.getItem('chat_entities') || '[]');
+            const entityData = entities.find(e => e.name === name || e.tag === name);
+            return entityData ? EntityData.fromObject(entityData) : null;
+        }
+
+        try {
+            // Check if entities store exists
+            if (!this.db.objectStoreNames.contains('entities')) {
+                console.warn('Entities store not found, using localStorage fallback');
+                const entities = JSON.parse(localStorage.getItem('chat_entities') || '[]');
+                const entityData = entities.find(e => e.name === name || e.tag === name);
+                return entityData ? EntityData.fromObject(entityData) : null;
+            }
+
+            const transaction = this.db.transaction(['entities'], 'readonly');
+            const store = transaction.objectStore('entities');
+            const nameIndex = store.index('name');
+            
+            // Try by name first
+            let result = await nameIndex.get(name);
+            if (!result) {
+                // Try by tag
+                const tagIndex = store.index('tag');
+                result = await tagIndex.get(name);
+            }
+            
+            return result ? EntityData.fromObject(result) : null;
+        } catch (error) {
+            console.warn('Error accessing entities store, using localStorage:', error);
+            const entities = JSON.parse(localStorage.getItem('chat_entities') || '[]');
+            const entityData = entities.find(e => e.name === name || e.tag === name);
+            return entityData ? EntityData.fromObject(entityData) : null;
+        }
+    }
+
+    /**
+     * Get or create entity by name (simple proper implementation)
+     */
+    async getOrCreateEntity(name, type = 'entity') {
+        console.log(`🔍 Looking for entity: "${name}"`);
+        
+        // First try to find existing entity by name
+        let entity = await this.getEntityByName(name);
+        
+        if (entity) {
+            // Found existing entity - update last seen and return it
+            entity.updateLastSeen();
+            await this.saveEntity(entity);
+            console.log(`♻️ Found existing entity: ${name} -> ${entity.uuid.substring(0,8)}...`);
+            return entity;
+        }
+
+        // Entity doesn't exist - create new one with regular UUID
+        entity = EntityData.createFromName(name, type);
+        await this.saveEntity(entity);
+        console.log(`✨ Created new entity: ${name} -> ${entity.uuid.substring(0,8)}...`);
+        return entity;
     }
 }

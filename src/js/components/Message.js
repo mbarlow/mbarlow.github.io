@@ -1,4 +1,5 @@
 import { Component } from '../core/Component.js';
+import { UUID } from '../utils/UUID.js';
 
 /**
  * Simple Message data structure for both channels and DMs
@@ -14,7 +15,7 @@ export class Message extends Component {
     } = {}) {
         super();
         
-        this.id = id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        this.id = id || UUID.generate();
         this.type = type;
         this.targetId = targetId;
         this.content = content;

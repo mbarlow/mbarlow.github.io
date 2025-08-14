@@ -1,4 +1,5 @@
 import { Component } from '../core/Component.js';
+import { UUID } from '../utils/UUID.js';
 
 /**
  * Simple Channel data structure
@@ -13,7 +14,7 @@ export class Channel extends Component {
     } = {}) {
         super();
         
-        this.id = id || `channel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        this.id = id || UUID.generate();
         this.name = name;
         this.members = new Set(members); // Use Set for efficient member operations
         this.created = created || new Date().toISOString();
