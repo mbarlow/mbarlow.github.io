@@ -131,13 +131,33 @@ export class InitializationSystem extends System {
 
         // Add conversation system (new unified DM/Channel system)
         const conversationSystem = new ConversationSystem();
-        conversationSystem.init(this.world, this.industrialPortfolio);
+        await conversationSystem.init(this.world, this.industrialPortfolio);
         this.world.addSystem(conversationSystem, "conversation");
 
         // Add autonomous chat system for entity-to-entity conversations
         const autonomousChatSystem = new AutonomousChatSystem();
         this.world.addSystem(autonomousChatSystem, "autonomousChat");
         autonomousChatSystem.init(this.world);
+
+        // Create "random" channel for bot-to-bot autonomous conversations
+        try {
+            const randomChannel = conversationSystem.createChannel("random", "system", {
+                description: "General channel for autonomous entity conversations",
+                isPrivate: false
+            });
+            console.log("📡 Created 'random' channel for autonomous chat:", randomChannel.id);
+            
+            // Add all AI entities to the channel
+            const allEntities = Array.from(this.world.entities.values());
+            for (const entity of allEntities) {
+                if (entity.hasComponent("BrainComponent")) {
+                    conversationSystem.joinChannel("random", entity.id);
+                    console.log(`🤖 Added ${entity.tag || entity.id} to random channel`);
+                }
+            }
+        } catch (error) {
+            console.warn("⚠️ Failed to create random channel:", error);
+        }
 
         // Add persistence system BEFORE creating connections so we can check for existing sessions
         const persistenceSystem = new PersistenceSystem(this.world);

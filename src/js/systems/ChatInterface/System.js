@@ -279,75 +279,136 @@ export class ChatInterfaceSystem extends System {
         this.updateSendButton(chatInput, document.getElementById("chat-send"));
         this.clearImagePreview();
 
-        // Send message through session system
-        const sessionSystem = this.world?.getSystem("session");
+        // Send message through conversation system (new unified system)
+        const conversationSystem = this.world?.getSystem("conversation");
         const agentSystem = this.world?.getSystem("agent");
 
-        if (sessionSystem && this.industrialPortfolio?.playerEntity && this.industrialPortfolio?.currentChatTarget) {
-            // Add user message to session with images
-            sessionSystem.sendMessage(
-                session.id,
-                this.industrialPortfolio.playerEntity.id,
-                message,
-                "user",
-                { images: images }
-            );
-
-            // Display user message
-            this.addMessage("user", message);
-
-            // Get AI response if agent system is ready
-            if (agentSystem && agentSystem.isConnected) {
-                try {
-                    // Get response from AI using entity context
-                    const response = await agentSystem.generateResponseWithContext(
+        if (conversationSystem && this.industrialPortfolio?.playerEntity && this.industrialPortfolio?.currentChatTarget) {
+            // Send message to conversation system only
+            try {
+                const activeConversation = conversationSystem.getActiveConversation();
+                if (activeConversation) {
+                    conversationSystem.addMessage(
+                        activeConversation.id,
+                        this.industrialPortfolio.playerEntity.id,
                         message,
-                        this.industrialPortfolio.currentChatTarget,
-                        { images: images, userMessage: message }
+                        "user",
+                        { images: images }
                     );
-
-                    // Add AI response to session
-                    sessionSystem.sendMessage(
-                        session.id,
-                        this.industrialPortfolio.currentChatTarget.id,
-                        response,
-                        "llm"
+                    console.log("💾 Message saved to ConversationSystem:", activeConversation.id);
+                } else {
+                    // Find or create DM if no active conversation
+                    const dm = conversationSystem.findOrCreateDM(
+                        this.industrialPortfolio.playerEntity.id,
+                        this.industrialPortfolio.currentChatTarget.id
                     );
-
-                    // Display AI response
-                    this.addMessage("assistant", response);
-                    
-                    // Refresh sessions list to show updated activity
-                    if (this.industrialPortfolio.loadSessionsList) {
-                        this.industrialPortfolio.loadSessionsList();
-                    }
-                } catch (error) {
-                    console.error("Error getting AI response:", error);
-                    // Fallback response
-                    const fallbackResponse = "Agent system not initialized. Please check if Ollama is running.";
-                    sessionSystem.sendMessage(
-                        session.id,
-                        this.industrialPortfolio.currentChatTarget.id,
-                        fallbackResponse,
-                        "system"
+                    conversationSystem.setActiveConversation(dm.id);
+                    conversationSystem.addMessage(
+                        dm.id,
+                        this.industrialPortfolio.playerEntity.id,
+                        message,
+                        "user",
+                        { images: images }
                     );
-                    this.addMessage("assistant", fallbackResponse);
+                    console.log("💾 Message saved to new DM conversation:", dm.id);
                 }
-            } else {
-                // Fallback response when agent not connected
-                const fallbackResponse = "Agent system not initialized. Please check if Ollama is running.";
-                sessionSystem.sendMessage(
-                    session.id,
-                    this.industrialPortfolio.currentChatTarget.id,
-                    fallbackResponse,
-                    "system"
+            } catch (error) {
+                console.warn("⚠️ Failed to save to ConversationSystem:", error);
+            }
+        }
+
+        // Display user message
+        this.addMessage("user", message);
+
+        // Get AI response if agent system is ready
+        if (agentSystem && agentSystem.isConnected) {
+            try {
+                // Get response from AI using entity context
+                const response = await agentSystem.generateResponseWithContext(
+                    message,
+                    this.industrialPortfolio.currentChatTarget,
+                    { images: images, userMessage: message }
                 );
+
+                // Add AI response to conversation system only
+                if (conversationSystem) {
+                    try {
+                        const activeConversation = conversationSystem.getActiveConversation();
+                        if (activeConversation) {
+                            conversationSystem.addMessage(
+                                activeConversation.id,
+                                this.industrialPortfolio.currentChatTarget.id,
+                                response,
+                                "assistant"
+                            );
+                            console.log("💾 AI response saved to ConversationSystem:", activeConversation.id);
+                        }
+                    } catch (error) {
+                        console.warn("⚠️ Failed to save AI response to ConversationSystem:", error);
+                    }
+                }
+
+                // Display AI response
+                this.addMessage("assistant", response);
+                
+                // Refresh DMs list to show updated activity
+                if (this.industrialPortfolio.loadSessionsList) {
+                    this.industrialPortfolio.loadSessionsList();
+                }
+                
+                // Also update conversation system stats for UI
+                if (conversationSystem) {
+                    const activeConversation = conversationSystem.getActiveConversation();
+                    if (activeConversation) {
+                        console.log(`📊 Conversation stats: ${activeConversation.messageCount} messages, last activity: ${new Date(activeConversation.lastActivityAt).toLocaleTimeString()}`);
+                    }
+                }
+            } catch (error) {
+                console.error("Error getting AI response:", error);
+                // Fallback response
+                const fallbackResponse = "Agent system not initialized. Please check if Ollama is running.";
+                
+                // Save fallback to conversation system only
+                if (conversationSystem) {
+                    try {
+                        const activeConversation = conversationSystem.getActiveConversation();
+                        if (activeConversation) {
+                            conversationSystem.addMessage(
+                                activeConversation.id,
+                                this.industrialPortfolio.currentChatTarget.id,
+                                fallbackResponse,
+                                "system"
+                            );
+                        }
+                    } catch (error) {
+                        console.warn("⚠️ Failed to save fallback to ConversationSystem:", error);
+                    }
+                }
+                
                 this.addMessage("assistant", fallbackResponse);
             }
         } else {
-            // Fallback if session system not ready
-            this.addMessage("user", message);
-            this.addMessage("assistant", "Session system not initialized.");
+            // Fallback response when agent not connected
+            const fallbackResponse = "Agent system not initialized. Please check if Ollama is running.";
+            
+            // Save fallback to conversation system only
+            if (conversationSystem) {
+                try {
+                    const activeConversation = conversationSystem.getActiveConversation();
+                    if (activeConversation) {
+                        conversationSystem.addMessage(
+                            activeConversation.id,
+                            this.industrialPortfolio.currentChatTarget.id,
+                            fallbackResponse,
+                            "system"
+                        );
+                    }
+                } catch (error) {
+                    console.warn("⚠️ Failed to save fallback to ConversationSystem:", error);
+                }
+            }
+            
+            this.addMessage("assistant", fallbackResponse);
         }
     }
 

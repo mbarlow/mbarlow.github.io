@@ -56,45 +56,93 @@ export class PersistenceSystem extends System {
     async saveCurrentState() {
         if (!this.initialized) return;
         
-        const sessionSystem = this.world.getSystem('session');
-        if (!sessionSystem) return;
-        
         console.log('💾 Saving current state...');
         
         try {
-            // Save all active sessions
             let savedCount = 0;
             
-            for (const [sessionId, sessionData] of sessionSystem.sessions) {
-                const { session, entities } = sessionData;
-                
-                // Create session data
-                const sessionStorageData = this.storage.createSessionData(session);
-                await this.storage.saveSession(sessionStorageData);
-                
-                // Save chat log
-                const chatLogComp = entities[0]?.getComponent(ChatLog);
-                if (chatLogComp) {
-                    const chatLog = chatLogComp.getLog(session.chatLogId);
-                    if (chatLog) {
-                        const chatLogData = this.storage.createChatLogData(chatLog);
-                        await this.storage.saveChatLog(chatLogData);
+            // Save old SessionSystem data
+            const sessionSystem = this.world.getSystem('session');
+            if (sessionSystem) {
+                for (const [sessionId, sessionData] of sessionSystem.sessions) {
+                    const { session, entities } = sessionData;
+                    
+                    // Create session data
+                    const sessionStorageData = this.storage.createSessionData(session);
+                    await this.storage.saveSession(sessionStorageData);
+                    
+                    // Save chat log
+                    const chatLogComp = entities[0]?.getComponent(ChatLog);
+                    if (chatLogComp) {
+                        const chatLog = chatLogComp.getLog(session.chatLogId);
+                        if (chatLog) {
+                            const chatLogData = this.storage.createChatLogData(chatLog);
+                            await this.storage.saveChatLog(chatLogData);
+                        }
                     }
-                }
-                
-                // Save brain data for all participants
-                for (const entity of entities) {
-                    const brain = entity.getComponent(BrainComponent);
-                    if (brain) {
-                        const brainData = this.storage.createBrainData(entity.id, brain);
-                        await this.storage.saveBrain(brainData);
+                    
+                    // Save brain data for all participants
+                    for (const entity of entities) {
+                        const brain = entity.getComponent(BrainComponent);
+                        if (brain) {
+                            const brainData = this.storage.createBrainData(entity.id, brain);
+                            await this.storage.saveBrain(brainData);
+                        }
                     }
+                    
+                    savedCount++;
                 }
-                
-                savedCount++;
             }
             
-            console.log(`✅ Saved ${savedCount} sessions to storage`);
+            // Save new ConversationSystem data
+            const conversationSystem = this.world.getSystem('conversation');
+            if (conversationSystem) {
+                const conversations = conversationSystem.getAllConversations();
+                
+                for (const conversation of conversations) {
+                    // Only save conversations that have messages
+                    if (conversation.messages && conversation.messages.length > 0) {
+                        // Save conversation as a session for compatibility
+                        const sessionData = {
+                            id: conversation.id,
+                            type: 'conversation',
+                            conversationType: conversation.type, // 'dm' or 'channel'
+                            title: conversation.name || `${conversation.type} conversation`,
+                            participants: Array.from(conversation.participants),
+                            messageCount: conversation.messageCount,
+                            createdAt: conversation.createdAt,
+                            lastActivityAt: conversation.lastActivityAt,
+                            state: conversation.isActive ? 'active' : 'inactive',
+                            chatLogId: `chatlog_${conversation.id}`
+                        };
+                        
+                        // Add channel-specific data
+                        if (conversation.type === 'channel') {
+                            sessionData.channelName = conversation.name;
+                            sessionData.channelDescription = conversation.description;
+                            sessionData.isPrivate = conversation.isPrivate;
+                        }
+                        
+                        await this.storage.saveSession(sessionData);
+                        
+                        // Save messages as a chat log
+                        const chatLogData = {
+                            id: sessionData.chatLogId,
+                            sessionId: conversation.id,
+                            messages: conversation.messages || [],
+                            createdAt: conversation.createdAt,
+                            lastActivity: conversation.lastActivityAt
+                        };
+                        
+                        await this.storage.saveChatLog(chatLogData);
+                        savedCount++;
+                        
+                        console.log(`💾 Saved ${conversation.type} "${conversation.name || conversation.id}" with ${conversation.messages.length} messages`);
+                    }
+                }
+            }
+            
+            console.log(`✅ Saved ${savedCount} sessions/conversations to storage`);
             
         } catch (error) {
             console.error('❌ Failed to save state:', error);

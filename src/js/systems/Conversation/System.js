@@ -23,11 +23,77 @@ export class ConversationSystem extends System {
         this.activeConversationId = null;
     }
 
-    init(world, industrialPortfolio) {
+    async init(world, industrialPortfolio) {
         console.log("💬 Initializing Conversation System...");
         this.world = world;
         this.industrialPortfolio = industrialPortfolio;
+        
+        // Load saved conversations
+        await this.loadSavedConversations();
+        
         console.log("✅ Conversation System initialized");
+    }
+    
+    async loadSavedConversations() {
+        try {
+            const persistenceSystem = this.world?.getSystem("persistence");
+            if (!persistenceSystem?.initialized) {
+                console.log("📂 Persistence system not ready, skipping conversation loading");
+                return;
+            }
+            
+            console.log("📂 Loading saved conversations...");
+            const allSessions = await persistenceSystem.storage.getAllSessions();
+            let loadedCount = 0;
+            
+            for (const session of allSessions) {
+                // Only load conversation-type sessions (new format)
+                if (session.type === 'conversation' && session.conversationType) {
+                    const conversation = new Conversation(session.conversationType, {
+                        id: session.id,
+                        participants: session.participants || [],
+                        messageCount: session.messageCount || 0,
+                        createdAt: session.createdAt,
+                        lastActivityAt: session.lastActivityAt,
+                        name: session.channelName || session.title,
+                        description: session.channelDescription,
+                        isPrivate: session.isPrivate
+                    });
+                    
+                    // Load messages from chat log
+                    if (session.chatLogId) {
+                        try {
+                            const chatLog = await persistenceSystem.storage.loadChatLog(session.chatLogId);
+                            if (chatLog && chatLog.messages) {
+                                conversation.messages = chatLog.messages;
+                                conversation.messageCount = chatLog.messages.length;
+                                console.log(`📜 Loaded ${chatLog.messages.length} messages for ${conversation.type} "${conversation.name}"`);
+                            }
+                        } catch (error) {
+                            console.warn(`Failed to load chat log for conversation ${session.id}:`, error);
+                        }
+                    }
+                    
+                    // Store the conversation
+                    this.conversations.set(conversation.id, conversation);
+                    
+                    // Update lookup maps
+                    if (conversation.type === 'dm') {
+                        const dmKey = Array.from(conversation.participants).sort().join(':');
+                        this.dmLookup.set(dmKey, conversation.id);
+                    } else if (conversation.type === 'channel') {
+                        this.channels.set(conversation.name, conversation.id);
+                    }
+                    
+                    loadedCount++;
+                }
+            }
+            
+            console.log(`📊 Loaded ${loadedCount} saved conversations`);
+            
+        } catch (error) {
+            console.error("❌ Failed to load saved conversations:", error);
+        }
     }
 
     // DM Management
@@ -147,15 +213,9 @@ export class ConversationSystem extends System {
             throw new Error(`Entity ${senderId} is not a participant in conversation ${conversationId}`);
         }
         
-        // Create message (this would integrate with existing message system)
+        // Create message
         const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Add to conversation
-        conversation.addMessage(messageId);
-        
-        console.log(`💌 Added message to ${conversation.type} ${conversation.id}: ${content.substring(0, 50)}...`);
-        
-        return {
+        const message = {
             id: messageId,
             conversationId: conversationId,
             senderId: senderId,
@@ -164,6 +224,26 @@ export class ConversationSystem extends System {
             timestamp: Date.now(),
             ...options
         };
+        
+        // Initialize messages array if it doesn't exist
+        if (!conversation.messages) {
+            conversation.messages = [];
+        }
+        
+        // Store the full message data on the conversation
+        conversation.messages.push(message);
+        
+        // Add to conversation messageIds tracking
+        conversation.addMessage(messageId);
+        
+        console.log(`💌 Added message to ${conversation.type} ${conversation.id}: ${content.substring(0, 50)}...`);
+        
+        // Trigger UI update if this is the active conversation
+        if (this.activeConversationId === conversationId) {
+            this.notifyMessageAdded(message);
+        }
+        
+        return message;
     }
 
     // Active Conversation Management
@@ -213,6 +293,34 @@ export class ConversationSystem extends System {
             dmLookups: this.dmLookup.size,
             channelNames: Array.from(this.channels.keys())
         };
+    }
+
+    // UI notification for real-time updates
+    notifyMessageAdded(message) {
+        try {
+            // Get the SessionManagementSystem to trigger UI update
+            const sessionMgmt = this.world?.getSystem("sessionManagement");
+            if (sessionMgmt) {
+                // Get sender entity to get display name
+                const senderEntity = this.world?.entities?.get(message.senderId);
+                const authorName = senderEntity?.tag || message.speaker_name || message.senderId;
+                
+                // Add the message to the UI
+                sessionMgmt.addChannelMessage(
+                    message.type,
+                    message.content,
+                    authorName,
+                    message.timestamp,
+                    {} // options for display
+                );
+                
+                console.log(`🔔 UI updated with new message from ${authorName}`);
+            } else {
+                console.warn("⚠️ SessionManagementSystem not available for UI update");
+            }
+        } catch (error) {
+            console.warn("⚠️ Failed to notify UI of new message:", error);
+        }
     }
 
     // System update method (required by ECS)

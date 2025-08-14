@@ -173,47 +173,49 @@ export class AutonomousChatSystem extends System {
         connection1.addConnection(entity2.id, { state: 'active', metadata: { type: 'chat' } });
         connection2.addConnection(entity1.id, { state: 'active', metadata: { type: 'chat' } });
         
-        // Create or get session
-        this.ensureSession(entity1, entity2);
+        // Use random channel for autonomous conversations
+        this.ensureRandomChannelAccess(entity1, entity2);
     }
     
-    ensureSession(entity1, entity2) {
-        // Check if session component exists
-        let session1 = entity1.getComponent(Session);
-        if (!session1) {
-            session1 = new Session();
-            entity1.addComponent(session1);
+    ensureRandomChannelAccess(entity1, entity2) {
+        // Get the conversation system to access the random channel
+        const conversationSystem = this.world?.getSystem("conversation");
+        if (!conversationSystem) {
+            console.warn("⚠️ ConversationSystem not available for autonomous chat");
+            return;
         }
         
-        let session2 = entity2.getComponent(Session);
-        if (!session2) {
-            session2 = new Session();
-            entity2.addComponent(session2);
+        // Get or create the random channel
+        let randomChannel = conversationSystem.getChannel("random");
+        if (!randomChannel) {
+            try {
+                randomChannel = conversationSystem.createChannel("random", "system", {
+                    description: "General channel for autonomous entity conversations",
+                    isPrivate: false
+                });
+                console.log("📡 Created 'random' channel for autonomous chat:", randomChannel.id);
+            } catch (error) {
+                console.warn("⚠️ Failed to create random channel:", error);
+                return;
+            }
         }
         
-        // Check if these entities already have an active session together
-        const activeSessions1 = session1.getActiveSessionsForEntity(entity1.id);
-        const existingSession = activeSessions1.find(session => 
-            session.participants.has(entity1.id) && session.participants.has(entity2.id)
-        );
+        // Ensure both entities are in the channel
+        if (!randomChannel.hasParticipant(entity1.id)) {
+            try {
+                conversationSystem.joinChannel("random", entity1.id);
+                console.log(`🤖 Added ${entity1.tag || entity1.id} to random channel`);
+            } catch (error) {
+                console.warn(`⚠️ Failed to add ${entity1.tag} to random channel:`, error);
+            }
+        }
         
-        if (!existingSession) {
-            // Create new session using the proper API
-            const connectionId = `connection_${entity1.id}_${entity2.id}`;
-            const sessionData = session1.createSession(connectionId, [entity1.id, entity2.id]);
-            
-            // Set a descriptive title
-            sessionData.title = `${entity1.tag || 'Entity'} ⟷ ${entity2.tag || 'Entity'}`;
-            
-            // Create chat log component and attach to one of the entities
-            const chatLog = new ChatLog(sessionData.chatLogId);
-            entity1.addComponent(chatLog);
-            
-            // Also create session component on entity2 and add the same session
-            const activeSessions2 = session2.getActiveSessionsForEntity(entity2.id);
-            if (!activeSessions2.find(s => s.id === sessionData.id)) {
-                // Manually add the session to entity2's session component
-                session2.activeSessions.set(sessionData.id, sessionData);
+        if (!randomChannel.hasParticipant(entity2.id)) {
+            try {
+                conversationSystem.joinChannel("random", entity2.id);
+                console.log(`🤖 Added ${entity2.tag || entity2.id} to random channel`);
+            } catch (error) {
+                console.warn(`⚠️ Failed to add ${entity2.tag} to random channel:`, error);
             }
         }
     }
@@ -281,6 +283,9 @@ export class AutonomousChatSystem extends System {
             timestamp: Date.now()
         });
         
+        // Send message to random channel via ConversationSystem
+        this.sendMessageToRandomChannel(speaker, message);
+        
         // Update relationships and log experiences
         speakerBrain.updateRelationship(listener.id, 'conversation', 'positive', conversation.context.topic);
         listenerBrain.updateRelationship(speaker.id, 'conversation', 'positive', conversation.context.topic);
@@ -290,7 +295,7 @@ export class AutonomousChatSystem extends System {
             message_count: messageCount + 1
         });
         
-        // Store in chat log if available
+        // Store in chat log if available (legacy system)
         this.storeMessage(speaker, listener, message);
         
         // Update conversation state
@@ -469,32 +474,70 @@ Generate a natural conversation conclusion that wraps up the discussion. Be auth
         return null;
     }
     
+    sendMessageToRandomChannel(speaker, message) {
+        try {
+            const conversationSystem = this.world?.getSystem("conversation");
+            if (!conversationSystem) {
+                console.warn("⚠️ ConversationSystem not available for autonomous chat message");
+                return;
+            }
+            
+            // Get the random channel
+            const randomChannel = conversationSystem.getChannel("random");
+            if (!randomChannel) {
+                console.warn("⚠️ Random channel not found for autonomous chat message");
+                return;
+            }
+            
+            // Add message to the random channel
+            conversationSystem.addMessage(
+                randomChannel.id,
+                speaker.id,
+                message,
+                "autonomous",
+                { 
+                    speaker_name: speaker.tag || speaker.id,
+                    source: "autonomous_chat" 
+                }
+            );
+            
+            console.log(`📡 Autonomous message sent to random channel: ${speaker.tag || speaker.id}: "${message.substring(0, 50)}..."`);    
+        } catch (error) {
+            console.warn("⚠️ Failed to send autonomous message to random channel:", error);
+        }
+    }
+    
     storeMessage(sender, receiver, message) {
-        // Get session between these entities
-        const senderSession = sender.getComponent(Session);
-        if (!senderSession) return;
-        
-        // Find session with both participants
-        const activeSessions = senderSession.getActiveSessionsForEntity(sender.id);
-        const session = activeSessions.find(s => 
-            s.participants.has(sender.id) && s.participants.has(receiver.id)
-        );
-        if (!session) return;
-        
-        // Get chat log
-        const chatLog = sender.getComponent(ChatLog) || receiver.getComponent(ChatLog);
-        if (!chatLog) return;
-        
-        // Add message to chat log
-        chatLog.addMessage(session.chatLogId, {
-            senderId: sender.id,
-            content: message,
-            timestamp: Date.now(),
-            type: 'text'
-        });
-        
-        // Update session message count
-        senderSession.incrementMessageCount(session.id);
+        // Legacy session storage - keeping for backward compatibility during transition
+        try {
+            // Get session between these entities
+            const senderSession = sender.getComponent(Session);
+            if (!senderSession) return;
+            
+            // Find session with both participants
+            const activeSessions = senderSession.getActiveSessionsForEntity(sender.id);
+            const session = activeSessions.find(s => 
+                s.participants.has(sender.id) && s.participants.has(receiver.id)
+            );
+            if (!session) return;
+            
+            // Get chat log
+            const chatLog = sender.getComponent(ChatLog) || receiver.getComponent(ChatLog);
+            if (!chatLog) return;
+            
+            // Add message to chat log
+            chatLog.addMessage(session.chatLogId, {
+                senderId: sender.id,
+                content: message,
+                timestamp: Date.now(),
+                type: 'text'
+            });
+            
+            // Update session message count
+            senderSession.incrementMessageCount(session.id);
+        } catch (error) {
+            console.warn("⚠️ Legacy message storage failed:", error);
+        }
     }
     
     endConversation(conversation) {
