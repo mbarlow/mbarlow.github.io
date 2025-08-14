@@ -65,7 +65,7 @@ class IndustrialPortfolio {
   loadSessionsList() {
     const sessionManagement = this.world?.getSystem("sessionManagement");
     if (sessionManagement) {
-      sessionManagement.loadSessionsList();
+      sessionManagement.loadDMsList();
     }
   }
 

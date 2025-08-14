@@ -1,0 +1,214 @@
+/* Slack-like Channels and DMs Styles */
+
+/* Channels Section */
+.channels-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow-y: auto;
+    max-height: 200px;
+    padding-right: 4px;
+}
+
+.channels-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.channels-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.channels-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.channels-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+.channel-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: var(--text-muted);
+    font-size: 14px;
+    min-height: 28px;
+}
+
+.channel-item:hover {
+    background: var(--hover);
+    color: var(--text);
+}
+
+.channel-item.active {
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.channel-prefix {
+    opacity: 0.5;
+    font-weight: 400;
+    font-size: 16px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.channel-item.active .channel-prefix {
+    opacity: 0.8;
+}
+
+.channel-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Direct Messages Section */
+.dms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow-y: auto;
+    max-height: 250px;
+    padding-right: 4px;
+}
+
+.dms-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.dms-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dms-list::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.dms-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+.dm-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: var(--text-muted);
+    font-size: 13px;
+    min-height: 32px;
+}
+
+.dm-item:hover {
+    background: var(--hover);
+    color: var(--text);
+}
+
+.dm-item.active {
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
+}
+
+.dm-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+}
+
+.dm-status.online {
+    background: #44b700;
+}
+
+.dm-status.away {
+    background: #faa61a;
+}
+
+.dm-status.busy {
+    background: #f04747;
+}
+
+.dm-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dm-unread {
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.dms-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* Section Headers */
+.section-action {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    width: 24px;
+    height: 24px;
+}
+
+.section-action:hover {
+    background: rgba(var(--text-rgb, 255, 255, 255), 0.1);
+    color: var(--text);
+}
+
+.section-action svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Sidebar Sections Adjustments */
+#channels-section,
+#dms-section {
+    margin-bottom: 16px;
+}
+
+#channels-section .section-header,
+#dms-section .section-header {
+    padding: 8px 12px 4px 12px;
+}
+
+#channels-section .section-title,
+#dms-section .section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+}

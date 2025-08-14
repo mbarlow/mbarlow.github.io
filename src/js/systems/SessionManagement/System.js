@@ -28,23 +28,25 @@ export class SessionManagementSystem extends System {
     }
 
     initSessionsList() {
-        console.log("💬 Initializing sessions list...");
+        console.log("💬 Initializing DMs list...");
         
-        const refreshBtn = document.getElementById("refresh-sessions");
-        if (refreshBtn) {
-            refreshBtn.addEventListener("click", () => {
-                this.loadSessionsList();
+        // Add DM button handler
+        const addDmBtn = document.getElementById("add-dm");
+        if (addDmBtn) {
+            addDmBtn.addEventListener("click", () => {
+                // TODO: Show entity selector modal
+                console.log("Add DM clicked - entity selector coming soon");
             });
         }
 
         this.initSessionModals();
 
-        // Load sessions after a short delay to ensure systems are ready
+        // Load DMs after a short delay to ensure systems are ready
         setTimeout(() => {
-            this.loadSessionsList();
+            this.loadDMsList();
         }, 1000);
         
-        console.log("✅ Sessions list initialized");
+        console.log("✅ DMs list initialized");
     }
 
     initSessionModals() {
@@ -131,37 +133,40 @@ export class SessionManagementSystem extends System {
         }
     }
 
-    async loadSessionsList() {
-        console.log("🔄 Loading sessions list...");
+    async loadDMsList() {
+        console.log("🔄 Loading DMs list...");
         console.log("SessionManagementSystem initialized:", !!this.world, !!this.industrialPortfolio);
         
         const persistenceSystem = this.world?.getSystem("persistence");
         if (!persistenceSystem?.initialized) {
             console.log("⏳ Persistence system not ready, retrying in 1 second...");
-            setTimeout(() => this.loadSessionsList(), 1000);
+            setTimeout(() => this.loadDMsList(), 1000);
             return;
         }
 
         try {
-            const sessionsList = document.getElementById("sessions-list");
-            if (!sessionsList) {
-                console.error("Sessions list element not found");
+            const dmsList = document.getElementById("dms-list");
+            if (!dmsList) {
+                console.error("DMs list element not found");
                 return;
             }
 
-            // Clear existing sessions
-            sessionsList.innerHTML = "";
+            // Clear existing DMs
+            dmsList.innerHTML = "";
 
-            // Get all sessions from storage
+            // Get all sessions from storage (they are our DMs)
             const sessions = await persistenceSystem.storage.getAllSessions();
-            console.log("📋 Sessions loaded:", sessions.length);
-            console.log("📋 Sample session data:", sessions[0]);
+            console.log("💬 DMs loaded:", sessions.length);
 
             if (sessions.length === 0) {
                 const emptyMessage = document.createElement("div");
-                emptyMessage.className = "empty-sessions";
-                emptyMessage.textContent = "No sessions yet";
-                sessionsList.appendChild(emptyMessage);
+                emptyMessage.className = "empty-dms";
+                emptyMessage.textContent = "No direct messages yet";
+                emptyMessage.style.padding = "12px";
+                emptyMessage.style.textAlign = "center";
+                emptyMessage.style.color = "var(--text-muted)";
+                emptyMessage.style.fontSize = "12px";
+                dmsList.appendChild(emptyMessage);
                 return;
             }
 
@@ -172,65 +177,99 @@ export class SessionManagementSystem extends System {
                 return bTime - aTime;
             });
 
-            // Create session elements
+            // Create DM elements
             sessions.forEach(session => {
-                const sessionElement = this.createSessionElement(session);
-                sessionsList.appendChild(sessionElement);
+                const dmElement = this.createDMElement(session);
+                dmsList.appendChild(dmElement);
             });
 
         } catch (error) {
-            console.error("❌ Error loading sessions:", error);
-            const sessionsList = document.getElementById("sessions-list");
-            if (sessionsList) {
-                sessionsList.innerHTML = `<div class="error-message">Failed to load sessions: ${error.message}</div>`;
+            console.error("❌ Error loading DMs:", error);
+            const dmsList = document.getElementById("dms-list");
+            if (dmsList) {
+                dmsList.innerHTML = `<div class="error-message">Failed to load DMs: ${error.message}</div>`;
             }
         }
     }
 
-    createSessionElement(session) {
-        const sessionDiv = document.createElement("div");
-        sessionDiv.className = "session-item";
-        sessionDiv.dataset.sessionId = session.id;
+    // Keep loadSessionsList for backward compatibility
+    async loadSessionsList() {
+        return this.loadDMsList();
+    }
 
-        // Create session title
-        const titleDiv = document.createElement("div");
-        titleDiv.className = "session-title";
-        titleDiv.textContent = session.title || `Session ${session.id.slice(0, 8)}`;
+    createDMElement(session) {
+        const dmDiv = document.createElement("div");
+        dmDiv.className = "dm-item";
+        dmDiv.dataset.sessionId = session.id;
 
-        // Create session metadata
-        const metaDiv = document.createElement("div");
-        metaDiv.className = "session-meta";
-        
-        // Use the actual session structure properties
-        const messageCount = session.messageCount || 0;
-        const lastActivity = session.lastActivityAt || session.createdAt;
-        const formattedActivity = lastActivity ? 
-            new Date(lastActivity).toLocaleString() : 
-            'No activity';
-        
-        metaDiv.innerHTML = `
-            <span class="message-count">${messageCount} messages</span>
-            <span class="last-activity">${formattedActivity}</span>
-        `;
+        // Create status indicator
+        const statusDiv = document.createElement("div");
+        statusDiv.className = "dm-status";
+        // For now, all entities are "online" when the system is running
+        statusDiv.classList.add("online");
 
-        sessionDiv.appendChild(titleDiv);
-        sessionDiv.appendChild(metaDiv);
+        // Extract entity name from session title
+        // Session titles are formatted as "Entity1 ⟷ Entity2"
+        let entityName = "Unknown";
+        if (session.title) {
+            const parts = session.title.split(/[⟷↔\-–—]/);
+            // Find the non-player entity name
+            for (const part of parts) {
+                const trimmed = part.trim();
+                if (trimmed && trimmed.toLowerCase() !== 'player' && trimmed.toLowerCase() !== 'user') {
+                    entityName = trimmed;
+                    break;
+                }
+            }
+        }
+
+        // Create name div
+        const nameDiv = document.createElement("div");
+        nameDiv.className = "dm-name";
+        nameDiv.textContent = entityName;
+
+        // Create unread indicator if there are recent messages
+        const unreadDiv = document.createElement("div");
+        if (session.messageCount > 0 && session.lastActivityAt) {
+            // Show unread indicator for recent activity (within last hour)
+            const hourAgo = Date.now() - (60 * 60 * 1000);
+            if (new Date(session.lastActivityAt).getTime() > hourAgo) {
+                unreadDiv.className = "dm-unread";
+                unreadDiv.textContent = session.messageCount;
+            }
+        }
+
+        dmDiv.appendChild(statusDiv);
+        dmDiv.appendChild(nameDiv);
+        if (unreadDiv.className) {
+            dmDiv.appendChild(unreadDiv);
+        }
 
         // Add click handler to switch to session
-        sessionDiv.addEventListener("click", (e) => {
+        dmDiv.addEventListener("click", (e) => {
             e.preventDefault();
-            console.log("🔄 Session clicked:", session.id);
+            console.log("💬 DM clicked:", session.id, entityName);
             this.switchToSession(session.id);
+            // Remove active class from other DMs
+            document.querySelectorAll('.dm-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            dmDiv.classList.add('active');
         });
 
         // Add context menu handler
-        sessionDiv.addEventListener("contextmenu", (e) => {
+        dmDiv.addEventListener("contextmenu", (e) => {
             e.preventDefault();
-            console.log("🖱️ Context menu triggered for session:", session.id);
-            this.showContextMenu(e, session.id, session.title || `Session ${session.id.slice(0, 8)}`);
+            console.log("🖱️ Context menu triggered for DM:", session.id);
+            this.showContextMenu(e, session.id, entityName);
         });
 
-        return sessionDiv;
+        return dmDiv;
+    }
+
+    // Keep createSessionElement for backward compatibility
+    createSessionElement(session) {
+        return this.createDMElement(session);
     }
 
     switchToSession(sessionId) {
@@ -325,10 +364,10 @@ export class SessionManagementSystem extends System {
             });
 
             this.hideRenameModal();
-            this.loadSessionsList(); // Refresh the list
+            this.loadDMsList(); // Refresh the list
             
             if (this.industrialPortfolio) {
-                this.industrialPortfolio.addMessage('system', `📝 Session renamed to "${newTitle}"`);
+                this.industrialPortfolio.addMessage('system', `📝 DM renamed to "${newTitle}"`);
             }
 
         } catch (error) {
@@ -355,10 +394,10 @@ export class SessionManagementSystem extends System {
             await persistenceSystem.storage.deleteSession(this.selectedSessionId);
 
             this.hideDeleteModal();
-            this.loadSessionsList(); // Refresh the list
+            this.loadDMsList(); // Refresh the list
             
             if (this.industrialPortfolio) {
-                this.industrialPortfolio.addMessage('system', `🗑️ Deleted session "${sessionTitle}"`);
+                this.industrialPortfolio.addMessage('system', `🗑️ Deleted DM with "${sessionTitle}"`);
             }
 
         } catch (error) {
