@@ -73,9 +73,9 @@ export class VoxelIndicatorComponent extends Component {
     // Initialize with clear state
     this.clear();
 
-    console.log(
-      `🧊 VoxelIndicator created: ${this.gridSize.width}x${this.gridSize.height} grid`,
-    );
+    // console.log(
+    //   `🧊 VoxelIndicator created: ${this.gridSize.width}x${this.gridSize.height} grid`,
+    // );
   }
 
   /**
@@ -182,7 +182,7 @@ export class VoxelIndicatorComponent extends Component {
     const sequenceDelay = options.sequenceDelay || 50; // ms between each voxel
     const animationType = options.animationType || "bounce"; // bounce, fade, spiral
 
-    // console.log('🧊 Starting appear animation for', voxelIndices.length, 'voxels');
+    // Animation started silently
 
     voxelIndices.forEach((index, i) => {
       if (index >= 0 && index < this.voxelCount) {
@@ -192,7 +192,7 @@ export class VoxelIndicatorComponent extends Component {
         voxel.animationType = "appear";
         voxel.appearProgress = 0;
 
-        // console.log('🧊 Set voxel', index, 'to animate with delay', voxel.appearDelay);
+        // Voxel animation configured
       }
     });
 
@@ -203,11 +203,7 @@ export class VoxelIndicatorComponent extends Component {
    * Animate voxels in a wave pattern
    */
   animateVoxelsAppearWave(voxelIndices) {
-    console.log(
-      "🧊 Starting wave animation for",
-      voxelIndices.length,
-      "voxels",
-    );
+    // Starting wave animation
 
     voxelIndices.forEach((index, i) => {
       if (index >= 0 && index < this.voxelCount) {
@@ -221,13 +217,7 @@ export class VoxelIndicatorComponent extends Component {
         voxel.animationType = "appear";
         voxel.appearProgress = 0;
 
-        console.log(
-          "🧊 Wave voxel",
-          index,
-          `(${coords.x},${coords.y})`,
-          "delay:",
-          waveDelay,
-        );
+        // Wave voxel configured
       }
     });
 
@@ -261,7 +251,7 @@ export class VoxelIndicatorComponent extends Component {
    * Create a simple pattern (like a smiley face)
    */
   createPattern(patternName) {
-    console.log("🧊 Creating pattern:", patternName);
+    // Creating pattern: patternName
     this.clear();
 
     switch (patternName) {
@@ -287,14 +277,11 @@ export class VoxelIndicatorComponent extends Component {
         this.createIdlePattern();
     }
 
-    console.log(
-      "🧊 Pattern created, active voxels:",
-      this.voxels.filter((v) => v.targetVisible).length,
-    );
+    // Pattern created
   }
 
   createSmileyPattern() {
-    console.log("🧊 Creating smiley pattern");
+    // Creating smiley pattern
     // Face outline (simplified for 8x8)
     const faceColor = [100, 150, 255];
 
@@ -316,7 +303,7 @@ export class VoxelIndicatorComponent extends Component {
       }
     }
 
-    console.log("🧊 Animating voxels:", voxelIndices.length, "voxels");
+    // Animating voxels
     this.animateVoxelsAppear(voxelIndices, { sequenceDelay: 100 });
   }
 
@@ -416,7 +403,7 @@ export class VoxelIndicatorComponent extends Component {
   }
 
   createIdlePattern() {
-    console.log("🧊 Creating full grid pattern");
+    // Creating full grid pattern
     // Fill entire 8x8 grid
     const baseColor = [0, 100, 255];
     const voxelIndices = [];
@@ -437,13 +424,13 @@ export class VoxelIndicatorComponent extends Component {
       }
     }
 
-    console.log("🧊 Full grid pattern: all voxels set");
+    // Full grid pattern: all voxels set
     // Wave animation from bottom-left to top-right
     this.animateVoxelsAppearWave(voxelIndices);
   }
 
   createPatrolPattern() {
-    console.log("🧊 Creating patrol pattern");
+    // Creating patrol pattern
     // Create a shield/radar pattern for patrol bot
     const patrolColor = [255, 165, 0]; // Orange for security/warning
     const voxelIndices = [];
@@ -473,7 +460,7 @@ export class VoxelIndicatorComponent extends Component {
       });
     });
 
-    console.log("🧊 Patrol shield pattern: voxels set");
+    // Patrol shield pattern: voxels set
     // Wave animation from center outward
     this.animateVoxelsAppear(voxelIndices, { sequenceDelay: 40 });
   }
@@ -545,19 +532,7 @@ export class VoxelIndicatorComponent extends Component {
       if (voxel.isAnimating) {
         hasChanges = true;
 
-        if (Math.random() < 0.01) {
-          // Debug occasionally
-          console.log(
-            "🧊 Animating voxel",
-            i,
-            "type:",
-            voxel.animationType,
-            "progress:",
-            voxel.appearProgress,
-            "deltaTime:",
-            deltaTime,
-          );
-        }
+        // Animation progress tracking disabled for performance
 
         switch (voxel.animationType) {
           case "appear":
@@ -572,7 +547,7 @@ export class VoxelIndicatorComponent extends Component {
                 voxel.visible = true;
                 voxel.isAnimating = false;
                 voxel.animationType = "pulse";
-                // console.log("🧊 Voxel became visible!", i);
+                // Voxel became visible
               }
             }
             break;
