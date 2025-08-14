@@ -184,8 +184,20 @@ class IndustrialPortfolio {
     // Sort messages by timestamp
     const sortedMessages = [...messages].sort((a, b) => a.timestamp - b.timestamp);
     
+    // Group messages by date for date dividers
+    let lastDate = null;
+    
     // Display each message
     for (const msg of sortedMessages) {
+      // Add date divider if date changed
+      const msgDate = new Date(msg.timestamp);
+      const dateStr = msgDate.toDateString();
+      
+      if (lastDate !== dateStr) {
+        this.addDateDivider(msgDate);
+        lastDate = dateStr;
+      }
+      
       // Determine message type based on sender
       let messageType = 'user';
       if (msg.senderId === targetEntity.id) {
@@ -194,9 +206,47 @@ class IndustrialPortfolio {
         messageType = 'system';
       }
       
-      // Add the message to the display
-      chatInterface.addMessage(messageType, msg.content);
+      // Add the message to the display with images if present
+      const options = {};
+      if (msg.images && msg.images.length > 0) {
+        options.images = msg.images;
+      }
+      
+      chatInterface.addMessage(messageType, msg.content, options);
     }
+  }
+
+  // Add date divider to chat
+  addDateDivider(date) {
+    const chatMessages = document.getElementById("chat-messages");
+    if (!chatMessages) return;
+    
+    const dividerDiv = document.createElement("div");
+    dividerDiv.className = "date-divider";
+    
+    const textSpan = document.createElement("span");
+    textSpan.className = "date-divider-text";
+    
+    // Format date (Today, Yesterday, or full date)
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      textSpan.textContent = "Today";
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      textSpan.textContent = "Yesterday";
+    } else {
+      textSpan.textContent = date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+    
+    dividerDiv.appendChild(textSpan);
+    chatMessages.appendChild(dividerDiv);
   }
 
 

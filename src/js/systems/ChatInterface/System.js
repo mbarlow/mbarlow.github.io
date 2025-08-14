@@ -89,7 +89,7 @@ export class ChatInterfaceSystem extends System {
         console.log("✅ Chat interface initialized");
     }
 
-    addMessage(type, content) {
+    addMessage(type, content, options = {}) {
         const chatMessages = document.getElementById("chat-messages");
         const welcome = chatMessages.querySelector(".chat-welcome");
 
@@ -98,15 +98,129 @@ export class ChatInterfaceSystem extends System {
             welcome.remove();
         }
 
-        // Create message element
+        // Check if this is a consecutive message from the same author
+        const lastMessage = chatMessages.lastElementChild;
+        const isConsecutive = lastMessage && 
+                             lastMessage.classList.contains('message') &&
+                             lastMessage.classList.contains(type) &&
+                             !lastMessage.classList.contains('system');
+
+        // Create message element with Slack-style structure
         const messageDiv = document.createElement("div");
         messageDiv.className = `message ${type}`;
+        
+        if (isConsecutive) {
+            messageDiv.classList.add('consecutive');
+        }
 
+        // Create message header with inline avatar + author + time (only for non-consecutive messages)
+        if (!isConsecutive) {
+            const headerDiv = document.createElement("div");
+            headerDiv.className = "message-header";
+            
+            // Create avatar inline
+            const avatarDiv = document.createElement("div");
+            avatarDiv.className = "message-avatar";
+            
+            // Set avatar content based on message type
+            if (type === 'user') {
+                avatarDiv.textContent = 'U';
+            } else if (type === 'assistant') {
+                // Get entity name for avatar
+                const target = this.industrialPortfolio?.currentChatTarget;
+                if (target && target.tag) {
+                    if (target.tag === 'origin-marker') {
+                        avatarDiv.textContent = 'O';
+                    } else if (target.tag === 'bot') {
+                        avatarDiv.textContent = 'B';
+                    } else {
+                        avatarDiv.textContent = target.tag.charAt(0).toUpperCase();
+                    }
+                } else {
+                    avatarDiv.textContent = 'A';
+                }
+            } else if (type === 'system') {
+                avatarDiv.textContent = 'S';
+            }
+            
+            const authorSpan = document.createElement("span");
+            authorSpan.className = "message-author";
+            
+            // Set author name
+            if (type === 'user') {
+                authorSpan.textContent = 'You';
+            } else if (type === 'assistant') {
+                const target = this.industrialPortfolio?.currentChatTarget;
+                if (target && target.tag) {
+                    if (target.tag === 'origin-marker') {
+                        authorSpan.textContent = 'Origin';
+                    } else if (target.tag === 'bot') {
+                        authorSpan.textContent = 'Patrol Bot';
+                    } else {
+                        authorSpan.textContent = target.tag;
+                    }
+                } else {
+                    authorSpan.textContent = 'Assistant';
+                }
+            } else if (type === 'system') {
+                authorSpan.textContent = 'System';
+            }
+            
+            const timeSpan = document.createElement("span");
+            timeSpan.className = "message-time";
+            timeSpan.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            headerDiv.appendChild(avatarDiv);
+            headerDiv.appendChild(authorSpan);
+            headerDiv.appendChild(timeSpan);
+            messageDiv.appendChild(headerDiv);
+        }
+
+        // Create message body
+        const bodyDiv = document.createElement("div");
+        bodyDiv.className = "message-body";
+
+        // Create message content
         const messageContent = document.createElement("div");
         messageContent.className = "message-content";
         messageContent.textContent = content;
 
-        messageDiv.appendChild(messageContent);
+        // Add images if provided
+        if (options.images && options.images.length > 0) {
+            const imagesDiv = document.createElement("div");
+            imagesDiv.className = "message-images";
+            
+            options.images.forEach(imageUrl => {
+                const img = document.createElement("img");
+                img.className = "message-image";
+                img.src = imageUrl;
+                img.alt = "Uploaded image";
+                imagesDiv.appendChild(img);
+            });
+            
+            bodyDiv.appendChild(imagesDiv);
+        }
+
+        bodyDiv.appendChild(messageContent);
+        messageDiv.appendChild(bodyDiv);
+        
+        // Add message actions (hover toolbar)
+        const actionsDiv = document.createElement("div");
+        actionsDiv.className = "message-actions";
+        
+        // Add reaction button
+        const reactionBtn = document.createElement("button");
+        reactionBtn.className = "message-action";
+        reactionBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="9" x2="9.01" y2="9"/>
+            <line x1="15" y1="9" x2="15.01" y2="9"/>
+        </svg>`;
+        actionsDiv.appendChild(reactionBtn);
+        
+        messageDiv.appendChild(actionsDiv);
+        
         chatMessages.appendChild(messageDiv);
 
         // Scroll to bottom
