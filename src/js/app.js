@@ -433,11 +433,6 @@ class IndustrialPortfolio {
       if (commandSystem) {
         await commandSystem.handleSearchCommand(query);
       }
-    } else if (cmd === "/history") {
-      const commandSystem = this.world.getSystem("command");
-      if (commandSystem) {
-        await commandSystem.handleHistoryCommand();
-      }
     } else if (cmd === "/save") {
       const commandSystem = this.world.getSystem("command");
       if (commandSystem) {
@@ -447,21 +442,6 @@ class IndustrialPortfolio {
       const commandSystem = this.world.getSystem("command");
       if (commandSystem) {
         await commandSystem.handleExportCommand();
-      }
-    } else if (cmd === "/who") {
-      const commandSystem = this.world.getSystem("command");
-      if (commandSystem) {
-        await commandSystem.handleWhoCommand();
-      }
-    } else if (cmd === "/model") {
-      const commandSystem = this.world.getSystem("command");
-      if (commandSystem) {
-        await commandSystem.handleModelCommand();
-      }
-    } else if (cmd === "/context") {
-      const commandSystem = this.world.getSystem("command");
-      if (commandSystem) {
-        await commandSystem.handleContextCommand();
       }
     } else if (cmd.startsWith("/delete")) {
       const commandSystem = this.world.getSystem("command");
@@ -481,7 +461,7 @@ class IndustrialPortfolio {
     } else {
       this.addMessage(
         "assistant",
-        `Unknown command: ${command}\n\nAvailable commands:\n/start - Enter FPS mode\n/search <query> - Search chat history\n/history - Show recent sessions\n/save - Force save current session\n/export - Export all session data\n/who - Show entity information\n/model - Display current LLM model\n/context - Show conversation context\n/delete - Delete sessions (see /delete help)\n/titles - Generate titles for untitled sessions\n/connect - Connect to entities (see /connect help)`,
+        `Unknown command: ${command}\n\nAvailable commands:\n/start - Enter FPS mode\n/search <query> - Search chat history\n/save - Force save current session\n/export - Export all session data\n/delete - Delete sessions (see /delete help)\n/titles - Generate titles for untitled sessions\n/connect - Connect to entities (see /connect help)`,
       );
     }
   }

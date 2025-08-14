@@ -1,13 +1,13 @@
 # Command System
 
-The Command System handles all slash command processing and execution in the application. It processes commands like `/who`, `/model`, `/search`, and manages complex multi-step operations.
+The Command System handles all slash command processing and execution in the application. It processes commands like `/search`, `/delete`, and manages complex multi-step operations.
 
 ## Overview
 
 This system manages all `/command` functionality, providing a centralized command processor that delegates different types of commands based on complexity:
 
-- **Simple commands**: `/who`, `/model`, `/history`, `/save`
-- **Medium commands**: `/search`, `/export`, `/context`  
+- **Simple commands**: `/save`
+- **Medium commands**: `/search`, `/export`  
 - **Complex commands**: `/delete`, `/titles`, `/connect`
 
 ## Components Required
@@ -17,15 +17,11 @@ This system manages all `/command` functionality, providing a centralized comman
 ## Key Features
 
 ### Simple Commands
-- **`/who`**: Shows current chat target information and personality
-- **`/model`**: Lists available AI models and shows current selection
-- **`/history`**: Displays recent session history 
 - **`/save`**: Forces save of current session to IndexedDB
 
 ### Medium Commands  
 - **`/search <query>`**: Searches sessions by keywords, titles, and IDs
 - **`/export`**: Exports all session data to JSON file download
-- **`/context`**: Shows comprehensive conversation context and connection status
 
 ### Complex Commands
 - **`/delete`**: Multi-option session deletion with subcommands:
@@ -54,7 +50,7 @@ The Command System is automatically initialized and processes commands through:
 
 ```javascript
 const commandSystem = world.getSystem("command");
-await commandSystem.handleSlashCommand("/who");
+await commandSystem.handleSlashCommand("/save");
 ```
 
 Commands are typically triggered through the chat interface when users type messages starting with `/`.
@@ -64,10 +60,10 @@ Commands are typically triggered through the chat interface when users type mess
 The system uses a centralized routing approach in `app.js`:
 
 ```javascript
-if (cmd === "/who") {
+if (cmd === "/save") {
   const commandSystem = this.world.getSystem("command");
   if (commandSystem) {
-    await commandSystem.handleWhoCommand();
+    await commandSystem.handleSaveCommand();
   }
 }
 ```

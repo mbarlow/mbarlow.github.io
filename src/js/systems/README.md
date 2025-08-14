@@ -66,7 +66,7 @@ Manages the sessions sidebar, session list UI, context menus, rename/delete oper
 ## Specialized Systems
 
 ### [Command System](./Command/README.md)
-Processes all slash commands (/who, /model, /search, etc.), handles command routing, and manages command-specific functionality.
+Processes all slash commands (/search, /delete, /save, etc.), handles command routing, and manages command-specific functionality.
 
 ### [Initialization System](./Initialization/README.md)
 Handles ECS bootstrap process, system initialization order, entity setup, and application startup sequence.

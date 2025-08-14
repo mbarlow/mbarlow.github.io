@@ -800,38 +800,7 @@ body {
     flex-direction: column;
     background: transparent;
     overflow: hidden;
-}
-
-/* Views */
-.view {
-    flex: 1;
-    display: none;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-}
-
-.view.active {
-    display: flex;
-}
-
-.view-content {
-    padding: 32px;
-    max-width: 800px;
-    margin: 0 auto;
-    width: 100%;
-}
-
-.view-content h2 {
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: var(--text);
-}
-
-.view-content p {
-    color: var(--text-muted);
-    line-height: 1.6;
+    opacity: 0.95;
 }
 
 /* Chat Interface */
@@ -839,12 +808,8 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    max-width: 1100px;
-    margin: 0 auto;
     width: 100%;
-    padding: 0 16px;
-    height: 100vh;
-    overflow: hidden;
+    height: 100%;
 }
 
 .chat-messages {
@@ -1143,10 +1108,6 @@ body {
 
     .main-content {
         width: 100%;
-    }
-
-    .chat-container {
-        padding: 0 12px;
     }
 
     .welcome-logo .logo-text {

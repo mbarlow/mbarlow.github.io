@@ -74,21 +74,11 @@ export class SystemPromptBuilder {
         const baseCommands = [
             '/start - Enter FPS mode for 3D exploration',
             '/search <query> - Search chat history by keywords/titles',
-            '/history - Show recent conversation sessions',
             '/save - Force save current session state',
             '/export - Export all session data as JSON'
         ];
 
         const entityCommands = [];
-        if (brain.hasCommandAccess('who')) {
-            entityCommands.push('/who - Show entity information and brain details');
-        }
-        if (brain.hasCommandAccess('model')) {
-            entityCommands.push('/model - Display current LLM model information');
-        }
-        if (brain.hasCommandAccess('context')) {
-            entityCommands.push('/context - Show current conversation context');
-        }
 
         return [...baseCommands, ...entityCommands];
     }
