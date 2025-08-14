@@ -3,6 +3,7 @@ import { BrainComponent } from '../../components/BrainComponent.js';
 import { Connection } from '../../components/Connection.js';
 import { Session } from '../../components/Session.js';
 import { ChatLog } from '../../components/ChatLog.js';
+import { ChatComponent } from '../../components/ChatComponent.js';
 import { CONFIG } from '../../config/index.js';
 
 /**
@@ -178,46 +179,23 @@ export class AutonomousChatSystem extends System {
     }
     
     ensureRandomChannelAccess(entity1, entity2) {
-        // Get the conversation system to access the random channel
-        const conversationSystem = this.world?.getSystem("conversation");
-        if (!conversationSystem) {
-            console.warn("⚠️ ConversationSystem not available for autonomous chat");
+        // Get the chat system to access channels
+        const chatSystem = this.world?.getSystem("chat");
+        if (!chatSystem) {
+            console.warn("⚠️ ChatSystem not available for autonomous chat");
             return;
         }
         
-        // Get or create the random channel
-        let randomChannel = conversationSystem.getChannel("random");
-        if (!randomChannel) {
-            try {
-                randomChannel = conversationSystem.createChannel("random", "system", {
-                    description: "General channel for autonomous entity conversations",
-                    isPrivate: false
-                });
-                console.log("📡 Created 'random' channel for autonomous chat:", randomChannel.id);
-            } catch (error) {
-                console.warn("⚠️ Failed to create random channel:", error);
-                return;
+        // Ensure both entities have ChatComponents and are in the random channel
+        [entity1, entity2].forEach(entity => {
+            let chatComponent = entity.getComponent('ChatComponent');
+            if (!chatComponent) {
+                chatComponent = new ChatComponent();
+                chatComponent.init(this.world, entity.id);
+                entity.addComponent(chatComponent);
+                console.log(`💬 Added ChatComponent to ${entity.tag || entity.id}`);
             }
-        }
-        
-        // Ensure both entities are in the channel
-        if (!randomChannel.hasParticipant(entity1.id)) {
-            try {
-                conversationSystem.joinChannel("random", entity1.id);
-                console.log(`🤖 Added ${entity1.tag || entity1.id} to random channel`);
-            } catch (error) {
-                console.warn(`⚠️ Failed to add ${entity1.tag} to random channel:`, error);
-            }
-        }
-        
-        if (!randomChannel.hasParticipant(entity2.id)) {
-            try {
-                conversationSystem.joinChannel("random", entity2.id);
-                console.log(`🤖 Added ${entity2.tag || entity2.id} to random channel`);
-            } catch (error) {
-                console.warn(`⚠️ Failed to add ${entity2.tag} to random channel:`, error);
-            }
-        }
+        });
     }
     
     assessRelationshipStatus(brain1, brain2, entity1, entity2) {
@@ -283,8 +261,8 @@ export class AutonomousChatSystem extends System {
             timestamp: Date.now()
         });
         
-        // Send message to random channel via ConversationSystem
-        this.sendMessageToRandomChannel(speaker, message);
+        // Send message to random channel via ChatSystem
+        await this.sendMessageToRandomChannel(speaker, message);
         
         // Update relationships and log experiences
         speakerBrain.updateRelationship(listener.id, 'conversation', 'positive', conversation.context.topic);
@@ -379,6 +357,19 @@ Respond with just the conversation starter message (1-2 sentences). Be natural a
             `${m.speaker === speaker.id ? 'You' : listener.tag || 'Other'}: ${m.message}`
         ).join('\n');
         
+        // Get other entities in the channel for potential @ mentions
+        const allEntities = Array.from(this.world.entities.values());
+        const otherEntities = allEntities.filter(e => 
+            e.hasComponent('ChatComponent') && 
+            e.getComponent('ChatComponent').isInChannel('random') && 
+            e.id !== speaker.id &&
+            e.id !== listener.id
+        );
+        
+        const mentionableEntities = otherEntities.map(e => e.tag || e.id).slice(0, 3);
+        const mentionContext = mentionableEntities.length > 0 ? 
+            `\n\nOther participants you can mention with @ include: ${mentionableEntities.join(', ')}. Use @ mentions occasionally to include others in the conversation.` : '';
+        
         const prompt = `You are ${speaker.tag || 'an entity'} responding in an ongoing conversation with ${listener.tag || 'another entity'}.
 
 Your Context:
@@ -391,11 +382,11 @@ Your Context:
 Recent conversation:
 ${conversationHistory}
 
-Last message from ${listener.tag || 'other'}: "${lastMessage.message}"
+Last message from ${listener.tag || 'other'}: "${lastMessage.message}"${mentionContext}
 
 ${context.systemPrompt}
 
-Respond naturally based on your personality, experiences, and the conversation flow. Be engaging and build on what was said (1-2 sentences).`;
+Respond naturally based on your personality, experiences, and the conversation flow. Be engaging and build on what was said (1-2 sentences). Occasionally use @ mentions to include others.`;
         
         try {
             const response = await agentSystem.generateResponseWithContext(prompt, speaker, {});
@@ -474,34 +465,38 @@ Generate a natural conversation conclusion that wraps up the discussion. Be auth
         return null;
     }
     
-    sendMessageToRandomChannel(speaker, message) {
+    async sendMessageToRandomChannel(speaker, message) {
         try {
-            const conversationSystem = this.world?.getSystem("conversation");
-            if (!conversationSystem) {
-                console.warn("⚠️ ConversationSystem not available for autonomous chat message");
+            // Get the ChatComponent for the speaker
+            const chatComponent = speaker.getComponent('ChatComponent');
+            if (!chatComponent) {
+                console.warn(`⚠️ ${speaker.tag || speaker.id} does not have ChatComponent`);
                 return;
             }
             
-            // Get the random channel
-            const randomChannel = conversationSystem.getChannel("random");
-            if (!randomChannel) {
-                console.warn("⚠️ Random channel not found for autonomous chat message");
-                return;
-            }
-            
-            // Add message to the random channel
-            conversationSystem.addMessage(
-                randomChannel.id,
-                speaker.id,
-                message,
-                "autonomous",
-                { 
-                    speaker_name: speaker.tag || speaker.id,
-                    source: "autonomous_chat" 
-                }
-            );
-            
+            // Send the message to the random channel
+            await chatComponent.sendChannelMsg('random', message);
             console.log(`📡 Autonomous message sent to random channel: ${speaker.tag || speaker.id}: "${message.substring(0, 50)}..."`);    
+            
+            // Trigger response handling for other entities in the channel
+            const chatSystem = this.world?.getSystem("chat");
+            if (chatSystem) {
+                // Get the message that was just sent
+                const recentMessages = await chatSystem.getChannelMessages('random', 1);
+                if (recentMessages.length > 0) {
+                    const newMessage = recentMessages[0];
+                    
+                    // Notify all entities with ChatComponents about the new message
+                    const allEntities = Array.from(this.world.entities.values());
+                    for (const entity of allEntities) {
+                        const entityChat = entity.getComponent('ChatComponent');
+                        if (entityChat && entityChat.isInChannel('random') && entity.id !== speaker.id) {
+                            // Handle the message asynchronously
+                            entityChat.handleChannelMessage('random', newMessage);
+                        }
+                    }
+                }
+            }
         } catch (error) {
             console.warn("⚠️ Failed to send autonomous message to random channel:", error);
         }

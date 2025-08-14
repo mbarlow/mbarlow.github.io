@@ -19,6 +19,8 @@ import {
   SessionManagementSystem,
   CommandSystem,
   AutonomousChatSystem,
+  ChatSystem,
+  ChatUISystem,
 } from "../index.js";
 import {
   Connection,
@@ -28,6 +30,7 @@ import {
   VoxelIndicatorComponent,
   TransformComponent,
 } from "../../components/index.js";
+import { ChatComponent } from "../../components/ChatComponent.js";
 import { SystemPromptBuilder } from "../../utils/index.js";
 
 /**
@@ -139,6 +142,16 @@ export class InitializationSystem extends System {
         await conversationSystem.init(this.world, this.industrialPortfolio);
         this.world.addSystem(conversationSystem, "conversation");
 
+        // Add new simplified chat system
+        const chatSystem = new ChatSystem();
+        await chatSystem.init(this.world, this.industrialPortfolio);
+        this.world.addSystem(chatSystem, "chat");
+
+        // Add new simplified chat UI system
+        const chatUISystem = new ChatUISystem();
+        this.world.addSystem(chatUISystem, "chatUI");
+        chatUISystem.init(this.world, this.industrialPortfolio);
+
         // Add autonomous chat system for entity-to-entity conversations
         const autonomousChatSystem = new AutonomousChatSystem();
         this.world.addSystem(autonomousChatSystem, "autonomousChat");
@@ -163,12 +176,28 @@ export class InitializationSystem extends System {
         
         try {
             
-            // Add all AI entities to the channel
+            // Add all AI entities to the channel and ensure they have ChatComponents
             const allEntities = Array.from(this.world.entities.values());
             for (const entity of allEntities) {
                 if (entity.hasComponent("BrainComponent")) {
+                    // Add ChatComponent if it doesn't have one
+                    if (!entity.hasComponent("ChatComponent")) {
+                        const chatComponent = new ChatComponent();
+                        chatComponent.init(this.world, entity.id);
+                        entity.addComponent(chatComponent);
+                        console.log(`💬 Added ChatComponent to ${entity.tag || entity.id}`);
+                    }
+                    
+                    // Join both default channels using the new ChatSystem
+                    const chatComponent = entity.getComponent("ChatComponent");
+                    if (chatComponent) {
+                        await chatComponent.joinChannel("general");
+                        await chatComponent.joinChannel("random");
+                        console.log(`🤖 ${entity.tag || entity.id} joined general and random channels`);
+                    }
+                    
+                    // Also add to old conversation system for now (compatibility)
                     conversationSystem.joinChannel("random", entity.id);
-                    console.log(`🤖 Added ${entity.tag || entity.id} to random channel`);
                 }
             }
         } catch (error) {
@@ -210,6 +239,11 @@ export class InitializationSystem extends System {
                 interests: ["exploration", "chatting", "learning"],
             });
             player.addComponent(playerBrain);
+
+            // Add chat component to player
+            const playerChat = new ChatComponent();
+            playerChat.init(this.world, player.id);
+            player.addComponent(playerChat);
 
             // Add connection component to player
             const playerConnection = new Connection();
@@ -258,6 +292,11 @@ export class InitializationSystem extends System {
                 ],
             });
             originMarker.addComponent(originBrain);
+
+            // Add chat component to origin marker
+            const originChat = new ChatComponent();
+            originChat.init(this.world, originMarker.id);
+            originMarker.addComponent(originChat);
 
             // Add connection component to origin marker
             const originConnection = new Connection();

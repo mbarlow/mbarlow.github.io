@@ -17,4 +17,6 @@ export { ChatInterfaceSystem } from './ChatInterface/index.js';
 export { SessionManagementSystem } from './SessionManagement/index.js';
 export { CommandSystem } from './Command/index.js';
 export { AutonomousChatSystem } from './AutonomousChat/index.js';
+export { ChatSystem } from './Chat/System.js';
+export { ChatUISystem } from './ChatUI/index.js';
 export { InitializationSystem } from './Initialization/index.js';
