@@ -137,13 +137,6 @@ export class SessionManagementSystem extends System {
         console.log("🔄 Loading DMs list...");
         console.log("SessionManagementSystem initialized:", !!this.world, !!this.industrialPortfolio);
         
-        const persistenceSystem = this.world?.getSystem("persistence");
-        if (!persistenceSystem?.initialized) {
-            console.log("⏳ Persistence system not ready, retrying in 1 second...");
-            setTimeout(() => this.loadDMsList(), 1000);
-            return;
-        }
-
         try {
             const dmsList = document.getElementById("dms-list");
             if (!dmsList) {
@@ -154,14 +147,52 @@ export class SessionManagementSystem extends System {
             // Clear existing DMs
             dmsList.innerHTML = "";
 
-            // Get all sessions from storage (they are our DMs)
-            const sessions = await persistenceSystem.storage.getAllSessions();
-            console.log("💬 DMs loaded:", sessions.length);
+            // Get all entities in the world that can be messaged
+            const allEntities = Array.from(this.world.entities.values());
+            const messagableEntities = [];
+            
+            // Find player entity
+            const playerEntity = this.industrialPortfolio?.playerEntity || 
+                                  this.world.getEntitiesByTag("player")[0];
+            
+            // Add all entities that have brain components (can chat)
+            for (const entity of allEntities) {
+                if (entity.hasComponent("BrainComponent")) {
+                    // Get all sessions involving this entity
+                    const persistenceSystem = this.world?.getSystem("persistence");
+                    let messageCount = 0;
+                    let lastActivity = null;
+                    
+                    if (persistenceSystem?.initialized) {
+                        const sessions = await persistenceSystem.storage.getAllSessions();
+                        // Count messages across all sessions with this entity
+                        for (const session of sessions) {
+                            // Check if session involves this entity
+                            const entityTag = entity.tag || entity.id;
+                            const sessionTitle = session.title || '';
+                            if (sessionTitle.toLowerCase().includes(entityTag.toLowerCase())) {
+                                messageCount += session.messageCount || 0;
+                                if (!lastActivity || (session.lastActivityAt && new Date(session.lastActivityAt) > new Date(lastActivity))) {
+                                    lastActivity = session.lastActivityAt;
+                                }
+                            }
+                        }
+                    }
+                    
+                    messagableEntities.push({
+                        entity: entity,
+                        messageCount: messageCount,
+                        lastActivity: lastActivity
+                    });
+                }
+            }
+            
+            console.log(`💬 Found ${messagableEntities.length} messagable entities`);
 
-            if (sessions.length === 0) {
+            if (messagableEntities.length === 0) {
                 const emptyMessage = document.createElement("div");
                 emptyMessage.className = "empty-dms";
-                emptyMessage.textContent = "No direct messages yet";
+                emptyMessage.textContent = "No entities available";
                 emptyMessage.style.padding = "12px";
                 emptyMessage.style.textAlign = "center";
                 emptyMessage.style.color = "var(--text-muted)";
@@ -170,16 +201,16 @@ export class SessionManagementSystem extends System {
                 return;
             }
 
-            // Sort sessions by last activity (most recent first)
-            sessions.sort((a, b) => {
-                const aTime = new Date(a.lastActivityAt || a.createdAt || 0).getTime();
-                const bTime = new Date(b.lastActivityAt || b.createdAt || 0).getTime();
+            // Sort entities by last activity (most recent first)
+            messagableEntities.sort((a, b) => {
+                const aTime = a.lastActivity ? new Date(a.lastActivity).getTime() : 0;
+                const bTime = b.lastActivity ? new Date(b.lastActivity).getTime() : 0;
                 return bTime - aTime;
             });
 
-            // Create DM elements
-            sessions.forEach(session => {
-                const dmElement = this.createDMElement(session);
+            // Create DM element for each entity
+            messagableEntities.forEach(({entity, messageCount, lastActivity}) => {
+                const dmElement = this.createEntityDMElement(entity, messageCount, lastActivity);
                 dmsList.appendChild(dmElement);
             });
 
@@ -197,10 +228,11 @@ export class SessionManagementSystem extends System {
         return this.loadDMsList();
     }
 
-    createDMElement(session) {
+    createEntityDMElement(entity, totalMessages, lastActivity) {
         const dmDiv = document.createElement("div");
         dmDiv.className = "dm-item";
-        dmDiv.dataset.sessionId = session.id;
+        dmDiv.dataset.entityId = entity.id;
+        dmDiv.dataset.entityTag = entity.tag || entity.id;
 
         // Create status indicator
         const statusDiv = document.createElement("div");
@@ -208,19 +240,22 @@ export class SessionManagementSystem extends System {
         // For now, all entities are "online" when the system is running
         statusDiv.classList.add("online");
 
-        // Extract entity name from session title
-        // Session titles are formatted as "Entity1 ⟷ Entity2"
-        let entityName = "Unknown";
-        if (session.title) {
-            const parts = session.title.split(/[⟷↔\-–—]/);
-            // Find the non-player entity name
-            for (const part of parts) {
-                const trimmed = part.trim();
-                if (trimmed && trimmed.toLowerCase() !== 'player' && trimmed.toLowerCase() !== 'user') {
-                    entityName = trimmed;
-                    break;
-                }
-            }
+        // Get entity display name
+        let entityName = entity.tag || "Unknown";
+        const brain = entity.getComponent("BrainComponent");
+        
+        // Format name for display
+        if (entityName === "player") {
+            entityName = "You"; // Self DM
+        } else if (entityName === "origin-marker") {
+            entityName = "Origin";
+        } else if (entityName === "bot") {
+            entityName = "Patrol Bot";
+        }
+        
+        // Add personality or function if available
+        if (brain && brain.primaryFunction && entityName !== "You") {
+            // entityName += ` (${brain.primaryFunction})`;
         }
 
         // Create name div
@@ -230,12 +265,12 @@ export class SessionManagementSystem extends System {
 
         // Create unread indicator if there are recent messages
         const unreadDiv = document.createElement("div");
-        if (session.messageCount > 0 && session.lastActivityAt) {
+        if (totalMessages > 0 && lastActivity) {
             // Show unread indicator for recent activity (within last hour)
             const hourAgo = Date.now() - (60 * 60 * 1000);
-            if (new Date(session.lastActivityAt).getTime() > hourAgo) {
+            if (new Date(lastActivity).getTime() > hourAgo) {
                 unreadDiv.className = "dm-unread";
-                unreadDiv.textContent = session.messageCount;
+                unreadDiv.textContent = totalMessages > 99 ? "99+" : totalMessages;
             }
         }
 
@@ -245,26 +280,40 @@ export class SessionManagementSystem extends System {
             dmDiv.appendChild(unreadDiv);
         }
 
-        // Add click handler to switch to session
-        dmDiv.addEventListener("click", (e) => {
+        // Add click handler to open DM with this entity
+        dmDiv.addEventListener("click", async (e) => {
             e.preventDefault();
-            console.log("💬 DM clicked:", session.id, entityName);
-            this.switchToSession(session.id);
+            console.log("💬 Entity DM clicked:", entity.tag || entity.id, entityName);
+            
             // Remove active class from other DMs
             document.querySelectorAll('.dm-item').forEach(item => {
                 item.classList.remove('active');
             });
             dmDiv.classList.add('active');
+            
+            // Switch to conversation with this entity
+            await this.switchToEntityDM(entity);
         });
 
         // Add context menu handler
         dmDiv.addEventListener("contextmenu", (e) => {
             e.preventDefault();
-            console.log("🖱️ Context menu triggered for DM:", session.id);
-            this.showContextMenu(e, session.id, entityName);
+            console.log("🖱️ Context menu triggered for entity DM:", entity.tag || entity.id);
+            // For now, disable context menu for entity DMs
+            // this.showContextMenu(e, entity.id, entityName);
         });
 
         return dmDiv;
+    }
+
+    createDMElement(session) {
+        // Legacy method - redirect to entity-based creation
+        // This is kept for backward compatibility
+        return this.createEntityDMElement({
+            id: session.id,
+            tag: session.title?.split(/[⟷↔\-–—]/)[0]?.trim() || "Unknown",
+            getComponent: () => null
+        }, session.messageCount || 0, session.lastActivityAt);
     }
 
     // Keep createSessionElement for backward compatibility
@@ -272,12 +321,80 @@ export class SessionManagementSystem extends System {
         return this.createDMElement(session);
     }
 
+    async switchToEntityDM(targetEntity) {
+        console.log("🔄 Switching to DM with entity:", targetEntity.tag || targetEntity.id);
+        
+        if (!this.industrialPortfolio) {
+            console.error("Industrial portfolio not available");
+            return;
+        }
+        
+        const player = this.industrialPortfolio.playerEntity;
+        if (!player) {
+            console.error("Player entity not found");
+            return;
+        }
+        
+        // Set the current chat target
+        this.industrialPortfolio.currentChatTarget = targetEntity;
+        
+        // Clear current chat display
+        this.industrialPortfolio.clearChatDisplay();
+        
+        // Load all sessions between player and this entity
+        const persistenceSystem = this.world?.getSystem("persistence");
+        if (persistenceSystem?.initialized) {
+            const allSessions = await persistenceSystem.storage.getAllSessions();
+            const entityTag = targetEntity.tag || targetEntity.id;
+            const allMessages = [];
+            
+            // Collect all messages from all sessions with this entity
+            for (const session of allSessions) {
+                const sessionTitle = session.title || '';
+                // Check if this session involves the target entity
+                if (sessionTitle.toLowerCase().includes(entityTag.toLowerCase()) ||
+                    (session.participants && (session.participants.includes(targetEntity.id) || 
+                     Array.from(session.participants || []).includes(targetEntity.id)))) {
+                    
+                    // Load chat log for this session
+                    if (session.chatLogId) {
+                        const chatLog = await persistenceSystem.storage.loadChatLog(session.chatLogId);
+                        if (chatLog && chatLog.messages) {
+                            allMessages.push(...chatLog.messages);
+                        }
+                    }
+                }
+            }
+            
+            // Sort all messages by timestamp
+            allMessages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            
+            // Display the combined chat history
+            if (allMessages.length > 0) {
+                this.industrialPortfolio.displayChatHistory(allMessages, targetEntity);
+            }
+            
+            // Find or create an active session for new messages
+            const sessionSystem = this.world?.getSystem("session");
+            if (sessionSystem) {
+                const activeSession = await sessionSystem.findOrCreateSession(player, targetEntity);
+                console.log("✅ Active session ready for DM:", activeSession?.id);
+            }
+        }
+        
+        // Update UI to show active entity
+        const entityName = targetEntity.tag === "origin-marker" ? "Origin" : 
+                           targetEntity.tag === "bot" ? "Patrol Bot" :
+                           targetEntity.tag === "player" ? "You" :
+                           targetEntity.tag || "Entity";
+        this.industrialPortfolio.addMessage("system", `💬 Now chatting with ${entityName}`);
+    }
+
     switchToSession(sessionId) {
         console.log("🔄 Switching to session:", sessionId);
         
         if (this.industrialPortfolio) {
-            // Delegate to the main app to handle session switching
-            // This involves finding the target entity and setting currentChatTarget
+            // Legacy method - delegate to the main app
             this.industrialPortfolio.switchToSession(sessionId);
         }
     }
