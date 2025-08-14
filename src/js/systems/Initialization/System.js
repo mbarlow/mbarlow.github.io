@@ -125,6 +125,11 @@ export class InitializationSystem extends System {
         );
         this.world.addSystem(connectionSystem, "connection");
 
+        // Add persistence system FIRST so other systems can load saved data
+        const persistenceSystem = new PersistenceSystem(this.world);
+        this.world.addSystem(persistenceSystem, "persistence");
+        await persistenceSystem.init();
+
         // Add session system
         const sessionSystem = new SessionSystem(this.world);
         this.world.addSystem(sessionSystem, "session");
@@ -139,13 +144,24 @@ export class InitializationSystem extends System {
         this.world.addSystem(autonomousChatSystem, "autonomousChat");
         autonomousChatSystem.init(this.world);
 
-        // Create "random" channel for bot-to-bot autonomous conversations
+        // Get or create "random" channel for bot-to-bot autonomous conversations
+        let randomChannel = conversationSystem.getChannel("random");
+        if (!randomChannel) {
+            try {
+                randomChannel = conversationSystem.createChannel("random", "system", {
+                    description: "General channel for autonomous entity conversations",
+                    isPrivate: false
+                });
+                console.log("📡 Created new 'random' channel for autonomous chat:", randomChannel.id);
+            } catch (error) {
+                console.warn("⚠️ Failed to create random channel:", error);
+                return; // Skip the rest if we can't create the channel
+            }
+        } else {
+            console.log("📡 Using existing 'random' channel:", randomChannel.id);
+        }
+        
         try {
-            const randomChannel = conversationSystem.createChannel("random", "system", {
-                description: "General channel for autonomous entity conversations",
-                isPrivate: false
-            });
-            console.log("📡 Created 'random' channel for autonomous chat:", randomChannel.id);
             
             // Add all AI entities to the channel
             const allEntities = Array.from(this.world.entities.values());
@@ -156,13 +172,8 @@ export class InitializationSystem extends System {
                 }
             }
         } catch (error) {
-            console.warn("⚠️ Failed to create random channel:", error);
+            console.warn("⚠️ Failed to setup random channel:", error);
         }
-
-        // Add persistence system BEFORE creating connections so we can check for existing sessions
-        const persistenceSystem = new PersistenceSystem(this.world);
-        this.world.addSystem(persistenceSystem, "persistence");
-        await persistenceSystem.init();
 
         // Add 3D voxel indicator render system
         const voxelIndicatorRenderSystem = new VoxelIndicatorRenderSystem(
