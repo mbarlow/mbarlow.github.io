@@ -134,8 +134,7 @@ export class SessionManagementSystem extends System {
     }
 
     async loadDMsList() {
-        console.log("🔄 Loading DMs list...");
-        console.log("SessionManagementSystem initialized:", !!this.world, !!this.industrialPortfolio);
+        console.log("🔄 Loading DMs list using ConversationSystem...");
         
         try {
             const dmsList = document.getElementById("dms-list");
@@ -147,42 +146,38 @@ export class SessionManagementSystem extends System {
             // Clear existing DMs
             dmsList.innerHTML = "";
 
-            // Get all entities in the world that can be messaged
-            const allEntities = Array.from(this.world.entities.values());
-            const messagableEntities = [];
+            // Get the new ConversationSystem
+            const conversationSystem = this.world.getSystem("conversation");
+            if (!conversationSystem) {
+                console.warn("ConversationSystem not found, falling back to old method");
+                dmsList.innerHTML = '<div class="dm-item">Loading...</div>';
+                return;
+            }
             
             // Find player entity
             const playerEntity = this.industrialPortfolio?.playerEntity || 
                                   this.world.getEntitiesByTag("player")[0];
             
-            // Add all entities that have brain components (can chat)
+            if (!playerEntity) {
+                console.warn("Player entity not found");
+                dmsList.innerHTML = '<div class="dm-item">Player not found</div>';
+                return;
+            }
+
+            // Get all entities that can chat
+            const allEntities = Array.from(this.world.entities.values());
+            const messagableEntities = [];
+            
             for (const entity of allEntities) {
-                if (entity.hasComponent("BrainComponent")) {
-                    // Get all sessions involving this entity
-                    const persistenceSystem = this.world?.getSystem("persistence");
-                    let messageCount = 0;
-                    let lastActivity = null;
-                    
-                    if (persistenceSystem?.initialized) {
-                        const sessions = await persistenceSystem.storage.getAllSessions();
-                        // Count messages across all sessions with this entity
-                        for (const session of sessions) {
-                            // Check if session involves this entity
-                            const entityTag = entity.tag || entity.id;
-                            const sessionTitle = session.title || '';
-                            if (sessionTitle.toLowerCase().includes(entityTag.toLowerCase())) {
-                                messageCount += session.messageCount || 0;
-                                if (!lastActivity || (session.lastActivityAt && new Date(session.lastActivityAt) > new Date(lastActivity))) {
-                                    lastActivity = session.lastActivityAt;
-                                }
-                            }
-                        }
-                    }
+                if (entity.hasComponent("BrainComponent") && entity.id !== playerEntity.id) {
+                    // Find or create DM conversation with this entity
+                    const dm = conversationSystem.findOrCreateDM(playerEntity.id, entity.id);
                     
                     messagableEntities.push({
                         entity: entity,
-                        messageCount: messageCount,
-                        lastActivity: lastActivity
+                        conversation: dm,
+                        messageCount: dm.messageCount,
+                        lastActivity: dm.lastActivityAt
                     });
                 }
             }
@@ -209,8 +204,8 @@ export class SessionManagementSystem extends System {
             });
 
             // Create DM element for each entity
-            messagableEntities.forEach(({entity, messageCount, lastActivity}) => {
-                const dmElement = this.createEntityDMElement(entity, messageCount, lastActivity);
+            messagableEntities.forEach(({entity, messageCount, lastActivity, conversation}) => {
+                const dmElement = this.createEntityDMElement(entity, messageCount, lastActivity, conversation);
                 dmsList.appendChild(dmElement);
             });
 
@@ -228,11 +223,16 @@ export class SessionManagementSystem extends System {
         return this.loadDMsList();
     }
 
-    createEntityDMElement(entity, totalMessages, lastActivity) {
+    createEntityDMElement(entity, totalMessages, lastActivity, conversation = null) {
         const dmDiv = document.createElement("div");
         dmDiv.className = "dm-item";
         dmDiv.dataset.entityId = entity.id;
         dmDiv.dataset.entityTag = entity.tag || entity.id;
+        
+        // Store conversation ID if provided (new conversation system)
+        if (conversation) {
+            dmDiv.dataset.conversationId = conversation.id;
+        }
 
         // Create status indicator
         const statusDiv = document.createElement("div");
@@ -322,7 +322,7 @@ export class SessionManagementSystem extends System {
     }
 
     async switchToEntityDM(targetEntity) {
-        console.log("🔄 Switching to DM with entity:", targetEntity.tag || targetEntity.id);
+        console.log("🔄 Switching to DM with entity using ConversationSystem:", targetEntity.tag || targetEntity.id);
         
         if (!this.industrialPortfolio) {
             console.error("Industrial portfolio not available");
@@ -334,6 +334,44 @@ export class SessionManagementSystem extends System {
             console.error("Player entity not found");
             return;
         }
+        
+        // Get ConversationSystem
+        const conversationSystem = this.world.getSystem("conversation");
+        if (!conversationSystem) {
+            console.warn("ConversationSystem not found, falling back to old method");
+            // Fall back to old session-based method
+            this.switchToEntityDMOld(targetEntity);
+            return;
+        }
+        
+        // Set the current chat target
+        this.industrialPortfolio.currentChatTarget = targetEntity;
+        
+        // Find or create DM conversation
+        const dm = conversationSystem.findOrCreateDM(player.id, targetEntity.id);
+        
+        // Set as active conversation
+        conversationSystem.setActiveConversation(dm.id);
+        
+        // Clear current chat display
+        this.industrialPortfolio.clearChatDisplay();
+        
+        // Load and display conversation messages
+        await this.loadConversationMessages(dm, targetEntity);
+        
+        console.log(`📱 Switched to DM conversation: ${dm.id} (${dm.messageCount} messages)`);
+        
+        // Update UI to show active entity
+        const entityName = targetEntity.tag === "origin-marker" ? "Origin" : 
+                           targetEntity.tag === "bot" ? "Patrol Bot" :
+                           targetEntity.tag === "player" ? "You" :
+                           targetEntity.tag || "Entity";
+        this.industrialPortfolio.addMessage("system", `💬 Now chatting with ${entityName} (Conversation: ${dm.id.slice(0, 8)}...)`);
+    }
+    
+    // Keep old method as fallback
+    async switchToEntityDMOld(targetEntity) {
+        console.log("🔄 Using old session-based DM switching for:", targetEntity.tag || targetEntity.id);
         
         // Set the current chat target
         this.industrialPortfolio.currentChatTarget = targetEntity;
@@ -377,7 +415,7 @@ export class SessionManagementSystem extends System {
             // Find or create an active session for new messages
             const sessionSystem = this.world?.getSystem("session");
             if (sessionSystem) {
-                const activeSession = await sessionSystem.findOrCreateSession(player, targetEntity);
+                const activeSession = await sessionSystem.findOrCreateSession(this.industrialPortfolio.playerEntity, targetEntity);
                 console.log("✅ Active session ready for DM:", activeSession?.id);
             }
         }
@@ -388,6 +426,82 @@ export class SessionManagementSystem extends System {
                            targetEntity.tag === "player" ? "You" :
                            targetEntity.tag || "Entity";
         this.industrialPortfolio.addMessage("system", `💬 Now chatting with ${entityName}`);
+    }
+    
+    async loadConversationMessages(conversation, targetEntity) {
+        console.log(`📜 Loading messages for conversation ${conversation.id}...`);
+        
+        try {
+            // For now, we need to bridge between the new conversation system and existing message storage
+            // This is a transitional approach - we'll map conversation to sessions to load existing messages
+            
+            const persistenceSystem = this.world?.getSystem("persistence");
+            if (!persistenceSystem?.initialized) {
+                console.warn("Persistence system not ready");
+                return;
+            }
+            
+            // Get all existing sessions and find ones that match this entity pair
+            const allSessions = await persistenceSystem.storage.getAllSessions();
+            const allMessages = [];
+            
+            const player = this.industrialPortfolio.playerEntity;
+            if (!player) return;
+            
+            // Find sessions between player and target entity (bridging old and new systems)
+            for (const session of allSessions) {
+                let isMatch = false;
+                
+                // Check if session involves both entities
+                if (session.participants) {
+                    const participants = Array.isArray(session.participants) ? 
+                        session.participants : Array.from(session.participants || []);
+                    
+                    if (participants.includes(player.id) && participants.includes(targetEntity.id)) {
+                        isMatch = true;
+                    }
+                }
+                
+                // Also check by title matching (legacy approach)
+                if (!isMatch) {
+                    const sessionTitle = session.title || '';
+                    const entityTag = targetEntity.tag || targetEntity.id;
+                    if (sessionTitle.toLowerCase().includes(entityTag.toLowerCase())) {
+                        isMatch = true;
+                    }
+                }
+                
+                if (isMatch && session.chatLogId) {
+                    const chatLog = await persistenceSystem.storage.loadChatLog(session.chatLogId);
+                    if (chatLog && chatLog.messages) {
+                        allMessages.push(...chatLog.messages);
+                        
+                        // Update conversation message count
+                        conversation.messageCount = Math.max(conversation.messageCount, chatLog.messages.length);
+                    }
+                }
+            }
+            
+            // Sort messages by timestamp
+            allMessages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            
+            // Display messages if any exist
+            if (allMessages.length > 0) {
+                console.log(`📜 Displaying ${allMessages.length} messages for conversation`);
+                this.industrialPortfolio.displayChatHistory(allMessages, targetEntity);
+                
+                // Update conversation's last activity
+                if (allMessages.length > 0) {
+                    const lastMessage = allMessages[allMessages.length - 1];
+                    conversation.lastActivityAt = lastMessage.timestamp || Date.now();
+                }
+            } else {
+                console.log("📜 No existing messages found for this conversation");
+            }
+            
+        } catch (error) {
+            console.error("❌ Error loading conversation messages:", error);
+        }
     }
 
     switchToSession(sessionId) {

@@ -9,6 +9,7 @@ export { FPSControllerSystem } from './FPSController/index.js';
 export { PatrolSystem } from './Patrol/index.js';
 export { ConnectionSystem } from './Connection/index.js';
 export { SessionSystem } from './Session/index.js';
+export { ConversationSystem } from './Conversation/System.js';
 export { PersistenceSystem } from './Persistence/index.js';
 export { VoxelIndicatorRenderSystem } from './VoxelIndicatorRender/index.js';
 export { DOMInterfaceSystem } from './DOMInterface/index.js';

@@ -11,6 +11,7 @@ import {
   PatrolSystem,
   ConnectionSystem,
   SessionSystem,
+  ConversationSystem,
   PersistenceSystem,
   VoxelIndicatorRenderSystem,
   DOMInterfaceSystem,
@@ -127,6 +128,11 @@ export class InitializationSystem extends System {
         // Add session system
         const sessionSystem = new SessionSystem(this.world);
         this.world.addSystem(sessionSystem, "session");
+
+        // Add conversation system (new unified DM/Channel system)
+        const conversationSystem = new ConversationSystem();
+        conversationSystem.init(this.world, this.industrialPortfolio);
+        this.world.addSystem(conversationSystem, "conversation");
 
         // Add autonomous chat system for entity-to-entity conversations
         const autonomousChatSystem = new AutonomousChatSystem();

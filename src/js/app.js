@@ -555,6 +555,96 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
+  // Test function for new ConversationSystem
+  window.testConversationSystem = () => {
+    console.log("🧪 Testing ConversationSystem...");
+    
+    const conversationSystem = window.industrialPortfolio.world?.getSystem("conversation");
+    if (!conversationSystem) {
+      console.error("❌ ConversationSystem not found");
+      return;
+    }
+    
+    try {
+      // Test DM creation
+      const dm = conversationSystem.findOrCreateDM("user_123", "bot_456");
+      console.log("✅ DM created:", dm.getDebugInfo());
+      
+      // Test Channel creation
+      const channel = conversationSystem.createChannel("test-channel", "user_123", {
+        description: "Test channel for development",
+        initialMembers: ["bot_456"]
+      });
+      console.log("✅ Channel created:", channel.getDebugInfo());
+      
+      // Test message adding
+      const dmMessage = conversationSystem.addMessage(dm.id, "user_123", "Hello bot!");
+      console.log("✅ DM message added:", dmMessage);
+      
+      const channelMessage = conversationSystem.addMessage(channel.id, "user_123", "Hello channel!");
+      console.log("✅ Channel message added:", channelMessage);
+      
+      // Test active conversation
+      conversationSystem.setActiveConversation(dm.id);
+      const active = conversationSystem.getActiveConversation();
+      console.log("✅ Active conversation:", active?.getDebugInfo());
+      
+      // Test system debug info
+      console.log("✅ System debug info:", conversationSystem.getDebugInfo());
+      
+      console.log("🎉 All ConversationSystem tests passed!");
+    } catch (error) {
+      console.error("❌ ConversationSystem test failed:", error);
+    }
+  };
+
+  // Test function for new Conversation component
+  window.testConversationComponent = () => {
+    console.log("🧪 Testing Conversation component...");
+    
+    try {
+      // Import the component
+      import('./components/Conversation.js').then(({ Conversation }) => {
+        // Test DM creation
+        const dm = new Conversation('dm', {
+          participants: ['user_123', 'bot_456'],
+          createdBy: 'user_123'
+        });
+        
+        console.log("✅ DM created:", dm.getDebugInfo());
+        console.log("DM display name:", dm.getDisplayName('user_123'));
+        console.log("DM is with bot_456:", dm.isDMWith('user_123', 'bot_456'));
+        
+        // Test Channel creation
+        const channel = new Conversation('channel', {
+          name: 'General',
+          description: 'General discussion',
+          participants: ['user_123', 'bot_456', 'origin_789'],
+          createdBy: 'user_123'
+        });
+        
+        console.log("✅ Channel created:", channel.getDebugInfo());
+        console.log("Channel display name:", channel.getDisplayName());
+        
+        // Test serialization
+        const dmJSON = dm.toJSON();
+        const channelJSON = channel.toJSON();
+        console.log("✅ DM serialized:", dmJSON);
+        console.log("✅ Channel serialized:", channelJSON);
+        
+        // Test deserialization
+        const dmRestored = Conversation.fromJSON(dmJSON);
+        const channelRestored = Conversation.fromJSON(channelJSON);
+        console.log("✅ DM restored:", dmRestored.getDebugInfo());
+        console.log("✅ Channel restored:", channelRestored.getDebugInfo());
+        
+        console.log("🎉 All Conversation component tests passed!");
+      });
+    } catch (error) {
+      console.error("❌ Conversation component test failed:", error);
+    }
+  };
+
   // Add function to manually sync entities with render system
   window.syncVoxelIndicators = () => {
     console.log("🧊 Manually syncing voxel indicators...");
