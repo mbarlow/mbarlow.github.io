@@ -1,85 +1,85 @@
-import { Component } from '../core/Component.js';
-import { UUID } from '../utils/UUID.js';
+import { Component } from "../core/Component.js";
+import { generateUUID } from "../utils/UUID.js";
 
 /**
  * Simple Channel data structure
  */
 export class Channel extends Component {
-    constructor({
-        id = null,
-        name = '',
-        members = [],
-        created = null,
-        description = ''
-    } = {}) {
-        super();
-        
-        this.id = id || UUID.generate();
-        this.name = name;
-        this.members = new Set(members); // Use Set for efficient member operations
-        this.created = created || new Date().toISOString();
-        this.description = description;
-    }
+  constructor({
+    id = null,
+    name = "",
+    members = [],
+    created = null,
+    description = "",
+  } = {}) {
+    super();
 
-    /**
-     * Convert to plain object for storage
-     */
-    toObject() {
-        return {
-            id: this.id,
-            name: this.name,
-            members: Array.from(this.members),
-            created: this.created,
-            description: this.description
-        };
-    }
+    this.id = id || generateUUID();
+    this.name = name;
+    this.members = new Set(members); // Use Set for efficient member operations
+    this.created = created || new Date().toISOString();
+    this.description = description;
+  }
 
-    /**
-     * Create from plain object
-     */
-    static fromObject(data) {
-        return new Channel(data);
-    }
+  /**
+   * Convert to plain object for storage
+   */
+  toObject() {
+    return {
+      id: this.id,
+      name: this.name,
+      members: Array.from(this.members),
+      created: this.created,
+      description: this.description,
+    };
+  }
 
-    /**
-     * Add member to channel
-     */
-    addMember(entityId) {
-        this.members.add(entityId);
-    }
+  /**
+   * Create from plain object
+   */
+  static fromObject(data) {
+    return new Channel(data);
+  }
 
-    /**
-     * Remove member from channel
-     */
-    removeMember(entityId) {
-        this.members.delete(entityId);
-    }
+  /**
+   * Add member to channel
+   */
+  addMember(entityId) {
+    this.members.add(entityId);
+  }
 
-    /**
-     * Check if entity is a member
-     */
-    hasMember(entityId) {
-        return this.members.has(entityId);
-    }
+  /**
+   * Remove member from channel
+   */
+  removeMember(entityId) {
+    this.members.delete(entityId);
+  }
 
-    /**
-     * Get member count
-     */
-    getMemberCount() {
-        return this.members.size;
-    }
+  /**
+   * Check if entity is a member
+   */
+  hasMember(entityId) {
+    return this.members.has(entityId);
+  }
 
-    /**
-     * Get all member IDs as array
-     */
-    getMemberIds() {
-        return Array.from(this.members);
-    }
+  /**
+   * Get member count
+   */
+  getMemberCount() {
+    return this.members.size;
+  }
 
-    /**
-     * Get display name for UI
-     */
-    getDisplayName() {
-        return `#${this.name}`;
-    }
+  /**
+   * Get all member IDs as array
+   */
+  getMemberIds() {
+    return Array.from(this.members);
+  }
+
+  /**
+   * Get display name for UI
+   */
+  getDisplayName() {
+    return `#${this.name}`;
+  }
 }
