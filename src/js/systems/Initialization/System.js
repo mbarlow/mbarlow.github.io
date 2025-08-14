@@ -133,7 +133,7 @@ export class InitializationSystem extends System {
         this.world.addSystem(autonomousChatSystem, "autonomousChat");
         autonomousChatSystem.init(this.world);
 
-        // Add persistence system
+        // Add persistence system BEFORE creating connections so we can check for existing sessions
         const persistenceSystem = new PersistenceSystem(this.world);
         this.world.addSystem(persistenceSystem, "persistence");
         await persistenceSystem.init();
@@ -145,8 +145,8 @@ export class InitializationSystem extends System {
         );
         this.world.addSystem(voxelIndicatorRenderSystem, "voxelIndicatorRender");
 
-        // Initialize player-origin connection after level is loaded
-        this.initializeDefaultConnections();
+        // Initialize player-origin connection after persistence is loaded
+        await this.initializeDefaultConnections();
 
         // Start the ECS world
         this.world.start();
@@ -154,7 +154,7 @@ export class InitializationSystem extends System {
         console.log("✅ ECS initialized");
     }
 
-    initializeDefaultConnections() {
+    async initializeDefaultConnections() {
         console.log("🔗 Initializing default connections...");
 
         // Find player and origin marker entities
@@ -254,12 +254,15 @@ export class InitializationSystem extends System {
             // Set default chat target to origin marker
             this.industrialPortfolio.currentChatTarget = originMarker;
 
-            // Create initial session between player and origin marker
+            // Create or reuse session between player and origin marker
             const sessionSystem = this.world?.getSystem("session");
             if (sessionSystem) {
-                const newSession = sessionSystem.createSession(player, originMarker);
-                if (newSession) {
-                    console.log("✅ Initial session created between player and origin marker");
+                // Check if there's an existing empty session we can reuse
+                const existingSession = await sessionSystem.findOrCreateSession(player, originMarker);
+                if (existingSession) {
+                    console.log(existingSession.reused ? 
+                        "♻️ Reusing existing empty session between player and origin marker" : 
+                        "✅ Initial session created between player and origin marker");
                 } else {
                     console.warn("⚠️ Failed to create initial session");
                 }

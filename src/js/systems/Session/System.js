@@ -14,6 +14,138 @@ export class SessionSystem extends System {
         this.chatLogs = new Map(); // chatLogId -> chatLog
     }
 
+    async findOrCreateSession(entity1, entity2) {
+        // Load existing sessions from persistence first
+        const persistenceSystem = this.world.getSystem("persistence");
+        if (persistenceSystem && persistenceSystem.initialized) {
+            try {
+                const allSessions = await persistenceSystem.storage.getAllSessions();
+                console.log(`🔍 Checking ${allSessions.length} existing sessions for reuse...`);
+                
+                // Sort sessions by creation time (newest first) to prefer most recent empty session
+                const sortedSessions = allSessions.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                
+                // Look for empty sessions between these specific entities first
+                for (const sessionData of sortedSessions) {
+                    // Check if this session involves both entities (by tag since IDs change)
+                    const entity1Tag = entity1.tag || entity1.id;
+                    const entity2Tag = entity2.tag || entity2.id;
+                    const sessionTitle = sessionData.title || '';
+                    
+                    // Check if session title contains both entity tags
+                    if (sessionTitle.toLowerCase().includes(entity1Tag.toLowerCase()) && 
+                        sessionTitle.toLowerCase().includes(entity2Tag.toLowerCase())) {
+                        
+                        // Check if this session has no messages
+                        if (sessionData.messageCount === 0) {
+                            console.log(`♻️ Found empty session to reuse: ${sessionData.title}`);
+                            
+                            // Load this session into the entities
+                            const sessionComp1 = this.world.ensureComponent(entity1, Session);
+                            const sessionComp2 = this.world.ensureComponent(entity2, Session);
+                            
+                            // Restore the session data, ensuring participants is a Set
+                            const restoredSession = {
+                                ...sessionData,
+                                participants: new Set(Array.isArray(sessionData.participants) ? 
+                                    sessionData.participants : 
+                                    Array.from(sessionData.participants))
+                            };
+                            
+                            sessionComp1.activeSessions.set(restoredSession.id, restoredSession);
+                            sessionComp2.activeSessions.set(restoredSession.id, restoredSession);
+                            
+                            // Store reference in the sessions map for system tracking
+                            this.sessions.set(restoredSession.id, {
+                                session: restoredSession,
+                                entities: [entity1, entity2]
+                            });
+                            
+                            restoredSession.reused = true;
+                            restoredSession.lastActivityAt = Date.now();
+                            return restoredSession;
+                        }
+                    }
+                }
+                
+                // If no matching session found, look for ANY empty session to reuse (fallback)
+                for (const sessionData of sortedSessions) {
+                    if (sessionData.messageCount === 0) {
+                        console.log(`♻️ Found any empty session to reuse: ${sessionData.title || sessionData.id}`);
+                        
+                        // Load this session into the entities
+                        const sessionComp1 = this.world.ensureComponent(entity1, Session);
+                        const sessionComp2 = this.world.ensureComponent(entity2, Session);
+                        
+                        // Restore the session data, ensuring participants is a Set
+                        const restoredSession = {
+                            ...sessionData,
+                            participants: new Set([entity1.id, entity2.id]), // Update participants to new entities
+                            title: `${entity1.tag || entity1.id} ⟷ ${entity2.tag || entity2.id}` // Update title
+                        };
+                        
+                        sessionComp1.activeSessions.set(restoredSession.id, restoredSession);
+                        sessionComp2.activeSessions.set(restoredSession.id, restoredSession);
+                        
+                        // Store reference in the sessions map for system tracking
+                        this.sessions.set(restoredSession.id, {
+                            session: restoredSession,
+                            entities: [entity1, entity2]
+                        });
+                        
+                        restoredSession.reused = true;
+                        restoredSession.lastActivityAt = Date.now();
+                        return restoredSession;
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to load existing sessions:', error);
+            }
+        }
+        
+        // Check in-memory sessions as fallback
+        const existingSessions = this.getSessionsBetweenEntities(entity1, entity2);
+        
+        for (const session of existingSessions) {
+            // Check if this session has any messages
+            const chatLog = entity1.getComponent(ChatLog) || entity2.getComponent(ChatLog);
+            if (chatLog) {
+                const log = chatLog.getLog(session.chatLogId);
+                if (log && log.messages.length === 0) {
+                    // Found an empty session we can reuse
+                    console.log(`♻️ Reusing in-memory empty session`);
+                    session.reused = true;
+                    session.lastActivityAt = Date.now();
+                    return session;
+                }
+            }
+        }
+        
+        // No empty session found, create a new one
+        console.log('📝 Creating new session - no empty sessions found to reuse');
+        const newSession = this.createSession(entity1, entity2);
+        if (newSession) {
+            newSession.reused = false;
+        }
+        return newSession;
+    }
+    
+    getSessionsBetweenEntities(entity1, entity2) {
+        const sessions = [];
+        const sessionComp1 = entity1.getComponent(Session);
+        
+        if (sessionComp1) {
+            for (const [sessionId, sessionData] of sessionComp1.activeSessions) {
+                if (sessionData.participants.has(entity1.id) && 
+                    sessionData.participants.has(entity2.id)) {
+                    sessions.push(sessionData);
+                }
+            }
+        }
+        
+        return sessions;
+    }
+
     createSession(entity1, entity2) {
         // Check if entities have required components
         const conn1 = entity1.getComponent(Connection);
@@ -42,6 +174,11 @@ export class SessionSystem extends System {
             conn1.getConnection(entity2.id).id,
             [entity1.id, entity2.id]
         );
+        
+        // Set a default title based on entity tags for better session identification
+        const entity1Name = entity1.tag || `Entity ${entity1.id.substring(0, 8)}`;
+        const entity2Name = entity2.tag || `Entity ${entity2.id.substring(0, 8)}`;
+        sessionData.title = `${entity1Name} ⟷ ${entity2Name}`;
 
         // Share session with both entities
         sessionComp2.activeSessions.set(sessionData.id, sessionData);

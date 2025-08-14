@@ -88,15 +88,49 @@ class IndustrialPortfolio {
       }
 
       // Find the target entity (not the player)
+      let targetEntity = null;
+      
+      // First try to find by entity ID (in case entities still exist)
       const targetId = session.participants.find(id => id !== this.playerEntity?.id);
-      if (!targetId) {
-        this.addMessage("system", "No valid chat target in session");
-        return;
+      if (targetId) {
+        targetEntity = this.world.getEntity(targetId);
       }
-
-      const targetEntity = this.world.getEntity(targetId);
+      
+      // If not found by ID, try to match by session title/tag
+      if (!targetEntity && session.title) {
+        // Session titles are usually formatted as "Entity1 ⟷ Entity2" or contain entity names
+        const titleLower = session.title.toLowerCase();
+        
+        // Try to find common entities
+        if (titleLower.includes('origin')) {
+          const originEntities = this.world.getEntitiesByTag('origin-marker');
+          if (originEntities && originEntities.length > 0) {
+            targetEntity = originEntities[0];
+          }
+        } else if (titleLower.includes('bot') || titleLower.includes('patrol')) {
+          const botEntities = this.world.getEntitiesByTag('bot');
+          if (botEntities && botEntities.length > 0) {
+            targetEntity = botEntities[0];
+          }
+        } else {
+          // Try to extract entity name from title
+          const titleParts = session.title.split(/[⟷↔\-–—]/);
+          for (const part of titleParts) {
+            const entityName = part.trim();
+            if (entityName && entityName.toLowerCase() !== 'player' && entityName.toLowerCase() !== 'user') {
+              // Try to find entity by tag
+              const entities = this.world.getEntitiesByTag(entityName.toLowerCase());
+              if (entities && entities.length > 0) {
+                targetEntity = entities[0];
+                break;
+              }
+            }
+          }
+        }
+      }
+      
       if (!targetEntity) {
-        this.addMessage("system", "Target entity not found");
+        this.addMessage("system", "Target entity not found - entities may have been recreated. Try starting a new chat with the entity.");
         return;
       }
 
