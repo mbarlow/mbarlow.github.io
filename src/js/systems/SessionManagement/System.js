@@ -387,7 +387,7 @@ export class SessionManagementSystem extends System {
     }
 
     async switchToEntityDM(targetEntity) {
-        console.log("🔄 Switching to DM with entity using ConversationSystem:", targetEntity.tag || targetEntity.id);
+        console.log("🔄 Switching to DM with entity using NEW ChatUISystem:", targetEntity.tag || targetEntity.id);
         
         if (!this.industrialPortfolio) {
             console.error("Industrial portfolio not available");
@@ -400,38 +400,19 @@ export class SessionManagementSystem extends System {
             return;
         }
         
-        // Get ConversationSystem
-        const conversationSystem = this.world.getSystem("conversation");
-        if (!conversationSystem) {
-            console.warn("ConversationSystem not found, falling back to old method");
+        // Get NEW ChatUISystem instead of old ConversationSystem
+        const chatUISystem = this.world.getSystem("chatUI");
+        if (!chatUISystem) {
+            console.warn("ChatUISystem not found, falling back to old method");
             // Fall back to old session-based method
             this.switchToEntityDMOld(targetEntity);
             return;
         }
         
-        // Set the current chat target
-        this.industrialPortfolio.currentChatTarget = targetEntity;
+        // Use the NEW ChatUISystem to switch to DM - this will handle everything properly!
+        await chatUISystem.switchToDM(targetEntity.id);
         
-        // Find or create DM conversation
-        const dm = conversationSystem.findOrCreateDM(player.id, targetEntity.id);
-        
-        // Set as active conversation
-        conversationSystem.setActiveConversation(dm.id);
-        
-        // Clear current chat display
-        this.industrialPortfolio.clearChatDisplay();
-        
-        // Load and display conversation messages
-        await this.loadConversationMessages(dm, targetEntity);
-        
-        console.log(`📱 Switched to DM conversation: ${dm.id} (${dm.messageCount} messages)`);
-        
-        // Update UI to show active entity
-        const entityName = targetEntity.tag === "origin-marker" ? "Origin" : 
-                           targetEntity.tag === "bot" ? "Patrol Bot" :
-                           targetEntity.tag === "player" ? "You" :
-                           targetEntity.tag || "Entity";
-        this.industrialPortfolio.addMessage("system", `💬 Now chatting with ${entityName} (Conversation: ${dm.id.slice(0, 8)}...)`);
+        console.log(`✅ Successfully switched to DM using ChatUISystem with entity: ${targetEntity.tag || targetEntity.id}`);
     }
     
     // Keep old method as fallback

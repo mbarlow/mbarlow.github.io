@@ -217,48 +217,58 @@ export class ChatSystem extends System {
     }
 
     /**
-     * Notify UI of new message
+     * Notify UI of new message - ONLY if it matches the current active view
      */
     notifyNewMessage(message, channel = null) {
         try {
+            console.log(`🔍 FILTERING CHECK: message.type=${message.type}, activeType=${this.activeType}, activeTarget=${this.activeTarget}, channel=${channel?.id || 'null'}`);
+            
+            // STRICT FILTERING: Only display if message matches current active view
+            if (message.type === 'channel') {
+                // Only show channel messages if we're actively viewing that specific channel
+                if (this.activeType !== 'channel' || !channel || this.activeTarget !== channel.id) {
+                    console.log(`🔇 IGNORING CHANNEL MESSAGE: activeType=${this.activeType} (should be 'channel'), activeTarget=${this.activeTarget}, messageChannel=${channel?.id}`);
+                    return;
+                }
+                console.log(`✅ ALLOWING CHANNEL MESSAGE: matches active channel view`);
+            } else if (message.type === 'dm') {
+                // Only show DM messages if we're actively viewing that specific DM conversation
+                const playerEntity = this.industrialPortfolio?.playerEntity;
+                if (!playerEntity) {
+                    console.log(`🔇 IGNORING DM MESSAGE: no player entity`);
+                    return;
+                }
+                
+                const isRelevantDM = (message.author === playerEntity.id && message.targetId === this.activeTarget) ||
+                                   (message.targetId === playerEntity.id && message.author === this.activeTarget);
+                
+                if (this.activeType !== 'dm' || !isRelevantDM) {
+                    console.log(`🔇 IGNORING DM MESSAGE: activeType=${this.activeType} (should be 'dm'), isRelevantDM=${isRelevantDM}`);
+                    return;
+                }
+                console.log(`✅ ALLOWING DM MESSAGE: matches active DM view`);
+            }
+
             // Get the entity that sent the message for display name
             const senderEntity = this.world?.entities?.get(message.author);
             const authorName = senderEntity?.tag || message.author;
 
-            // Add message to UI (this will need to integrate with existing UI system)
+            // Add message to UI - only gets here if it matches the active view
             if (this.industrialPortfolio) {
-                let messageType = message.type === 'channel' ? 'assistant' : 'user';
+                const isFromPlayer = message.author === this.industrialPortfolio?.playerEntity?.id;
                 
-                if (message.type === 'channel') {
-                    // For channel messages, use exact same format as DM messages
-                    this.industrialPortfolio.addMessage(
-                        messageType,
-                        message.content,
-                        { 
-                            author: authorName,
-                            timestamp: message.created,
-                            isChannelMessage: true
-                        }
-                    );
-                } else {
-                    // For DMs, determine if it's from player or other entity
-                    const isFromPlayer = message.author === this.industrialPortfolio?.playerEntity?.id;
-                    messageType = isFromPlayer ? 'user' : 'assistant';
-                    
-                    this.industrialPortfolio.addMessage(
-                        messageType,
-                        message.content,
-                        { 
-                            author: authorName,
-                            timestamp: message.created,
-                            isChannelMessage: false,
-                            originalAuthor: message.author
-                        }
-                    );
-                }
+                this.industrialPortfolio.addMessage(
+                    isFromPlayer ? 'user' : 'assistant',
+                    message.content,
+                    { 
+                        author: authorName,
+                        timestamp: message.created,
+                        isChannelMessage: message.type === 'channel'
+                    }
+                );
             }
             
-            console.log(`🔔 UI updated with new message from ${authorName} (${message.type})`);
+            console.log(`🔔 UI updated with new message from ${authorName} (${message.type}) - matches active view`);
         } catch (error) {
             console.warn('⚠️ Failed to notify UI of new message:', error);
         }

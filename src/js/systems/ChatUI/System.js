@@ -138,24 +138,32 @@ export class ChatUISystem extends System {
     async switchToChannel(channelName) {
         console.log(`🔄 Switching to channel: #${channelName}`);
         
+        // IMPORTANT: Set these FIRST before any other operations
         this.currentTarget = channelName;
         this.currentType = 'channel';
 
-        // Update active state in UI
-        this.updateActiveState('channel', channelName);
-
-        // Set active target in ChatSystem for real-time updates
+        // Get channel info and set active target IMMEDIATELY
         const channels = await this.chatSystem.getAllChannels();
         const channel = channels.find(c => c.name === channelName);
         if (channel) {
             this.chatSystem.setActiveTarget('channel', channel.id);
         }
 
+        // FORCE clear the chat display to remove any lingering messages
+        if (this.industrialPortfolio) {
+            this.industrialPortfolio.clearChatDisplay();
+        }
+
+        // Update active state in UI
+        this.updateActiveState('channel', channelName);
+
         // Load and display channel messages
         await this.loadChannelMessages(channelName);
 
-        // Update chat input placeholder
+        // Update chat input placeholder - FORCE it
         this.updateChatInputPlaceholder(`Message #${channelName}`);
+        
+        console.log(`✅ Switched to channel view - activeType: channel, activeTarget: ${channel?.id}`);
     }
 
     /**
@@ -167,20 +175,28 @@ export class ChatUISystem extends System {
         
         console.log(`🔄 Switching to DM with: ${entityName}`);
         
+        // IMPORTANT: Set these FIRST before any other operations
         this.currentTarget = entityId;
         this.currentType = 'dm';
+
+        // Set active target in ChatSystem IMMEDIATELY to stop channel messages
+        this.chatSystem.setActiveTarget('dm', entityId);
+        
+        // FORCE clear the chat display to remove any lingering messages
+        if (this.industrialPortfolio) {
+            this.industrialPortfolio.clearChatDisplay();
+        }
 
         // Update active state in UI
         this.updateActiveState('dm', entityId);
 
-        // Set active target in ChatSystem
-        this.chatSystem.setActiveTarget('dm', entityId);
-
         // Load and display DM messages
         await this.loadDMMessages(entityId);
 
-        // Update chat input placeholder
+        // Update chat input placeholder - FORCE it
         this.updateChatInputPlaceholder(`Message ${entityName}`);
+        
+        console.log(`✅ Switched to DM view - activeType: dm, activeTarget: ${entityId}`);
     }
 
     /**
@@ -219,8 +235,11 @@ export class ChatUISystem extends System {
             const authorEntity = this.world.entities.get(message.author);
             const authorName = authorEntity?.tag || message.author;
             
+            // Determine message type to create visual separation (same logic as DMs)
+            const isFromPlayer = message.author === this.industrialPortfolio?.playerEntity?.id;
+            
             this.industrialPortfolio.addMessage(
-                'assistant', // Use assistant style for channel messages
+                isFromPlayer ? 'user' : 'assistant',
                 message.content,
                 {
                     author: authorName,
@@ -520,6 +539,9 @@ export class ChatUISystem extends System {
         const chatInput = document.getElementById('chat-input');
         if (chatInput) {
             chatInput.placeholder = placeholder;
+            console.log(`📝 Updated chat input placeholder to: "${placeholder}"`);
+        } else {
+            console.warn('❌ Could not find chat-input element to update placeholder');
         }
     }
 
